@@ -1,0 +1,16 @@
+.{
+    .name = "flow-syntax",
+    .version = "0.0.1",
+
+    .dependencies = .{
+        .@"tree-sitter" = .{
+            .url = "https://github.com/neurocyte/tree-sitter/releases/download/master-fb56a3e014f77e8189ae8b60408c555f8fe8be88/source.tar.gz",
+            .hash = "12200ead593d0f6aa6352dba239cc83a1d1457b060738560dbb890fd5cc5957d710f",
+        },
+    },
+    .paths = .{
+        "src",
+        "build.zig",
+        "build.zig.zon",
+    },
+}
