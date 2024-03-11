@@ -291,7 +291,15 @@ pub const zig = .{
 pub const ziggy = .{
     .color = 0xf7a41d,
     .icon = "",
-    .extensions = .{"ziggy"},
+    .extensions = .{ "ziggy", "zgy" },
     .comment = "//",
     .highlights = "tree-sitter-ziggy/tree-sitter-ziggy/queries/highlights.scm",
+};
+
+pub const @"ziggy-schema" = .{
+    .color = 0xf7a41d,
+    .icon = "",
+    .extensions = .{ "ziggy-schema", "zyg-schema" },
+    .comment = "//",
+    .highlights = "tree-sitter-ziggy/tree-sitter-ziggy-schema/queries/highlights.scm",
 };

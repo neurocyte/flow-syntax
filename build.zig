@@ -56,6 +56,7 @@ pub fn build(b: *std.Build) void {
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-xml/xml/queries/highlights.scm"),
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-zig/queries/highlights.scm"),
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-ziggy/tree-sitter-ziggy/queries/highlights.scm"),
+            ts_queryfile(b, tree_sitter_dep, "tree-sitter-ziggy/tree-sitter-ziggy-schema/queries/highlights.scm"),
 
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-cpp/queries/injections.scm"),
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-gitcommit/queries/injections.scm"),
