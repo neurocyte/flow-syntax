@@ -11,6 +11,7 @@ highlights: [:0]const u8,
 injections: ?[:0]const u8,
 first_line_matches: ?FirstLineMatch = null,
 comment: []const u8,
+formatter: ?[]const []const u8,
 
 pub fn get_by_name(name: []const u8) ?*const FileType {
     for (file_types) |*file_type|
@@ -79,32 +80,23 @@ const FirstLineMatch = struct {
     content: ?[]const u8 = null,
 };
 
-const FileTypeOptions = struct {
-    extensions: []const []const u8 = &[_][]const u8{},
-    comment: []const u8,
-    icon: ?[]const u8 = null,
-    color: ?u24 = null,
-    highlights: ?[:0]const u8 = null,
-    injections: ?[:0]const u8 = null,
-    first_line_matches: ?FirstLineMatch = null,
-    parser: ?LangFn = null,
-};
-
-fn DeclLang(comptime lang: []const u8, comptime args: FileTypeOptions) FileType {
-    return .{
-        .color = args.color orelse 0xffffff,
-        .icon = args.icon orelse "󱀫",
-        .name = lang,
-        .lang_fn = if (args.parser) |p| p else get_parser(lang),
-        .extensions = args.extensions,
-        .comment = args.comment,
-        .highlights = if (args.highlights) |h| h else @embedFile("tree-sitter-" ++ lang ++ "/queries/highlights.scm"),
-        .injections = args.injections,
-        .first_line_matches = args.first_line_matches,
-    };
+fn FormatterCmd(comptime args: anytype) []const []const u8 {
+    const cmd: []const []const u8 = &[_][]const u8{};
+    inline for (args) |arg| {
+        cmd = cmd ++ arg;
+    }
+    return cmd;
 }
 
 pub const file_types = load_file_types(@import("file_types.zig"));
+
+fn vec(comptime args: anytype) []const []const u8 {
+    var cmd: []const []const u8 = &[_][]const u8{};
+    inline for (args) |arg| {
+        cmd = cmd ++ [_][]const u8{arg};
+    }
+    return cmd;
+}
 
 fn load_file_types(comptime Namespace: type) []FileType {
     comptime switch (@typeInfo(Namespace)) {
@@ -114,13 +106,26 @@ fn load_file_types(comptime Namespace: type) []FileType {
                 // @compileLog(decl.name, @TypeOf(@field(Namespace, decl.name)));
                 count += 1;
             }
-            var cmds: [count]FileType = undefined;
+            var types: [count]FileType = undefined;
             var i = 0;
             for (info.decls) |decl| {
-                cmds[i] = DeclLang(decl.name, @field(Namespace, decl.name));
+                const lang = decl.name;
+                const args = @field(Namespace, lang);
+                types[i] = .{
+                    .color = if (@hasField(@TypeOf(args), "color")) args.color else 0xffffff,
+                    .icon = if (@hasField(@TypeOf(args), "icon")) args.icon else "󱀫",
+                    .name = lang,
+                    .lang_fn = if (@hasField(@TypeOf(args), "parser")) args.parser else get_parser(lang),
+                    .extensions = vec(args.extensions),
+                    .comment = args.comment,
+                    .highlights = if (@hasField(@TypeOf(args), "highlights")) @embedFile(args.highlights) else @embedFile("tree-sitter-" ++ lang ++ "/queries/highlights.scm"),
+                    .injections = if (@hasField(@TypeOf(args), "injections")) @embedFile(args.injections) else null,
+                    .first_line_matches = if (@hasField(@TypeOf(args), "first_line_matches")) args.first_line_matches else null,
+                    .formatter = if (@hasField(@TypeOf(args), "formatter")) vec(args.formatter) else null,
+                };
                 i += 1;
             }
-            return &cmds;
+            return &types;
         },
         else => @compileError("expected tuple or struct type"),
     };
