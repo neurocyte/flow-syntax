@@ -67,9 +67,10 @@ fn get_parser(comptime lang: []const u8) LangFn {
 }
 
 fn ft_func_name(comptime lang: []const u8) []const u8 {
-    var func_name: [lang.len]u8 = undefined;
+    var transform: [lang.len]u8 = undefined;
     for (lang, 0..) |c, i|
-        func_name[i] = if (c == '-') '_' else c;
+        transform[i] = if (c == '-') '_' else c;
+    const func_name = transform;
     return &func_name;
 }
 
@@ -98,7 +99,7 @@ fn vec(comptime args: anytype) []const []const u8 {
     return cmd;
 }
 
-fn load_file_types(comptime Namespace: type) []FileType {
+fn load_file_types(comptime Namespace: type) []const FileType {
     comptime switch (@typeInfo(Namespace)) {
         .Struct => |info| {
             var count = 0;
@@ -106,12 +107,12 @@ fn load_file_types(comptime Namespace: type) []FileType {
                 // @compileLog(decl.name, @TypeOf(@field(Namespace, decl.name)));
                 count += 1;
             }
-            var types: [count]FileType = undefined;
+            var construct_types: [count]FileType = undefined;
             var i = 0;
             for (info.decls) |decl| {
                 const lang = decl.name;
                 const args = @field(Namespace, lang);
-                types[i] = .{
+                construct_types[i] = .{
                     .color = if (@hasField(@TypeOf(args), "color")) args.color else 0xffffff,
                     .icon = if (@hasField(@TypeOf(args), "icon")) args.icon else "󱀫",
                     .name = lang,
@@ -125,6 +126,7 @@ fn load_file_types(comptime Namespace: type) []FileType {
                 };
                 i += 1;
             }
+            const types = construct_types;
             return &types;
         },
         else => @compileError("expected tuple or struct type"),
