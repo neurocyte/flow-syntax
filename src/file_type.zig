@@ -12,6 +12,7 @@ injections: ?[:0]const u8,
 first_line_matches: ?FirstLineMatch = null,
 comment: []const u8,
 formatter: ?[]const []const u8,
+language_server: ?[]const []const u8,
 
 pub fn get_by_name(name: []const u8) ?*const FileType {
     for (file_types) |*file_type|
@@ -81,14 +82,6 @@ const FirstLineMatch = struct {
     content: ?[]const u8 = null,
 };
 
-fn FormatterCmd(comptime args: anytype) []const []const u8 {
-    const cmd: []const []const u8 = &[_][]const u8{};
-    inline for (args) |arg| {
-        cmd = cmd ++ arg;
-    }
-    return cmd;
-}
-
 pub const file_types = load_file_types(@import("file_types.zig"));
 
 fn vec(comptime args: anytype) []const []const u8 {
@@ -123,6 +116,7 @@ fn load_file_types(comptime Namespace: type) []const FileType {
                     .injections = if (@hasField(@TypeOf(args), "injections")) @embedFile(args.injections) else null,
                     .first_line_matches = if (@hasField(@TypeOf(args), "first_line_matches")) args.first_line_matches else null,
                     .formatter = if (@hasField(@TypeOf(args), "formatter")) vec(args.formatter) else null,
+                    .language_server = if (@hasField(@TypeOf(args), "language_server")) vec(args.language_server) else null,
                 };
                 i += 1;
             }

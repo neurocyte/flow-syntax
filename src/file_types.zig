@@ -9,6 +9,7 @@ pub const bash = .{
     .extensions = .{ "sh", "bash", ".profile" },
     .comment = "#",
     .first_line_matches = .{ .prefix = "#!", .content = "sh" },
+    .language_server = .{"bash-language-server"},
 };
 
 pub const c = .{
@@ -16,6 +17,7 @@ pub const c = .{
     .extensions = .{ "c", "h" },
     .comment = "//",
     .formatter = .{"clang-format"},
+    .language_server = .{"clangd"},
 };
 
 pub const @"c-sharp" = .{
@@ -23,6 +25,7 @@ pub const @"c-sharp" = .{
     .icon = "󰌛",
     .extensions = .{"cs"},
     .comment = "//",
+    .language_server = .{ "omnisharp", "-lsp" },
 };
 
 pub const conf = .{
@@ -41,6 +44,7 @@ pub const cpp = .{
     .comment = "//",
     .injections = "tree-sitter-cpp/queries/injections.scm",
     .formatter = .{"clang-format"},
+    .language_server = .{"clangd"},
 };
 
 pub const css = .{
@@ -96,6 +100,7 @@ pub const go = .{
     .icon = "󰟓",
     .extensions = .{"go"},
     .comment = "//",
+    .language_server = .{"gopls"},
 };
 
 pub const haskell = .{
@@ -103,6 +108,7 @@ pub const haskell = .{
     .icon = "󰲒",
     .extensions = .{"hs"},
     .comment = "--",
+    .language_server = .{"haskell-language-server-wrapper"},
 };
 
 pub const html = .{
@@ -126,11 +132,13 @@ pub const javascript = .{
     .extensions = .{"js"},
     .comment = "//",
     .injections = "tree-sitter-javascript/queries/injections.scm",
+    .language_server = .{ "deno", "lsp" },
 };
 
 pub const json = .{
     .extensions = .{"json"},
     .comment = "//",
+    .language_server = .{ "deno", "lsp" },
 };
 
 pub const lua = .{
@@ -140,6 +148,7 @@ pub const lua = .{
     .comment = "--",
     .injections = "tree-sitter-lua/queries/injections.scm",
     .first_line_matches = .{ .prefix = "--", .content = "lua" },
+    .language_server = .{"lua-lsp"},
 };
 
 pub const make = .{
@@ -154,6 +163,7 @@ pub const markdown = .{
     .comment = "<!--",
     .highlights = "tree-sitter-markdown/tree-sitter-markdown/queries/highlights.scm",
     .injections = "tree-sitter-markdown/tree-sitter-markdown/queries/injections.scm",
+    .language_server = .{ "deno", "lsp" },
 };
 
 pub const @"markdown-inline" = .{
@@ -227,6 +237,7 @@ pub const python = .{
     .extensions = .{"py"},
     .comment = "#",
     .first_line_matches = .{ .prefix = "#!", .content = "/bin/bash" },
+    .language_server = .{"pylsp"},
 };
 
 pub const regex = .{
@@ -247,6 +258,7 @@ pub const rust = .{
     .extensions = .{"rs"},
     .comment = "//",
     .injections = "tree-sitter-rust/queries/injections.scm",
+    .language_server = .{"rust-analyzer"},
 };
 
 pub const scheme = .{
@@ -269,6 +281,7 @@ pub const typescript = .{
     .icon = "󰛦",
     .extensions = .{ "ts", "tsx" },
     .comment = "//",
+    .language_server = .{ "deno", "lsp" },
 };
 
 pub const xml = .{
@@ -285,6 +298,7 @@ pub const zig = .{
     .extensions = .{ "zig", "zon" },
     .comment = "//",
     .formatter = .{ "zig", "fmt", "--stdin" },
+    .language_server = .{"zls"},
     .injections = "tree-sitter-zig/queries/injections.scm",
 };
 
