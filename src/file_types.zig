@@ -9,7 +9,7 @@ pub const bash = .{
     .extensions = .{ "sh", "bash", ".profile" },
     .comment = "#",
     .first_line_matches = .{ .prefix = "#!", .content = "sh" },
-    .language_server = .{"bash-language-server"},
+    .language_server = .{"bash-language-server", "start"},
 };
 
 pub const c = .{
