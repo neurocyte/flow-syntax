@@ -13,7 +13,7 @@ pub const bash = .{
 };
 
 pub const c = .{
-    .icon = "󰙱",
+    .icon = "",
     .extensions = .{ "c", "h" },
     .comment = "//",
     .formatter = .{"clang-format"},
