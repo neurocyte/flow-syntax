@@ -4,8 +4,11 @@
 
     .dependencies = .{
         .@"tree-sitter" = .{
-            .url = "https://github.com/neurocyte/tree-sitter/releases/download/master-745bf25a45e46c686e7b6545714e467d312bb33e/source.tar.gz",
-            .hash = "1220daabcc33fe1d7fa625563827c47d32fc61a888b5adf3c494acfdeade0ca63d20",
+            //.url = "https://github.com/neurocyte/tree-sitter/releases/download/master-745bf25a45e46c686e7b6545714e467d312bb33e/source.tar.gz",
+            //.hash = "1220daabcc33fe1d7fa625563827c47d32fc61a888b5adf3c494acfdeade0ca63d20",
+            // TODO revert to neurocyte when https://github.com/neurocyte/tree-sitter/pull/1/files is merged
+            .url = "https://github.com/MFAshby/tree-sitter/archive/da8fc99e847bb5f196c1c5ed8c3b6c3a7fe2f1a9.tar.gz",
+            .hash = "1220c57a8e6125aed9fbcfbf9c0da4dad907c4d3d91e116625d45aacf9072f45c274",
         },
     },
     .paths = .{
