@@ -10,7 +10,7 @@ pub fn build(b: *std.Build) void {
     });
 
     _ = b.addModule("syntax", .{
-        .root_source_file = .{ .path = "src/syntax.zig" },
+        .root_source_file = b.path("src/syntax.zig"),
         .imports = &.{
             .{ .name = "treez", .module = tree_sitter_dep.module("treez") },
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-agda/queries/highlights.scm"),
