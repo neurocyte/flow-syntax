@@ -9,6 +9,7 @@ pub const bash = .{
     .extensions = .{ "sh", "bash", ".profile" },
     .comment = "#",
     .first_line_matches = .{ .prefix = "#!", .content = "sh" },
+    .formatter = .{"shfmt", "--indent", "4"},
     .language_server = .{"bash-language-server", "start"},
 };
 
