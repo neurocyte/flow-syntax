@@ -197,6 +197,15 @@ pub const nim = .{
     .language_server = .{"nimlangserver"},
 };
 
+pub const nimble = .{
+    .color = 0xffe953,
+    .icon = "",
+    .extensions = .{"nimble"},
+    .highlights = toml.highlights,
+    .comment = "#",
+    .parser = toml.parser,
+};
+
 pub const ninja = .{
     .extensions = .{"ninja"},
     .comment = "#",
@@ -290,6 +299,8 @@ pub const @"ssh-config" = .{
 pub const toml = .{
     .extensions = .{"toml"},
     .comment = "#",
+    .highlights = "tree-sitter-toml/queries/highlights.scm",
+    .parser = @import("file_type.zig").Parser("toml"),
 };
 
 pub const typescript = .{
