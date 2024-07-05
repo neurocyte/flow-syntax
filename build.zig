@@ -37,6 +37,7 @@ pub fn build(b: *std.Build) void {
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-markdown/tree-sitter-markdown/queries/highlights.scm"),
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-markdown/tree-sitter-markdown-inline/queries/highlights.scm"),
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-nasm/queries/highlights.scm"),
+            ts_queryfile(b, tree_sitter_dep, "tree-sitter-nim/queries/highlights.scm"),
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-ninja/queries/highlights.scm"),
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-nix/queries/highlights.scm"),
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-ocaml/queries/highlights.scm"),
