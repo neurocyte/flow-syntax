@@ -71,7 +71,7 @@ pub const dtd = .{
     .icon = "󰗀",
     .extensions = .{"dtd"},
     .comment = "<!--",
-    .highlights = "tree-sitter-xml/dtd/queries/highlights.scm",
+    .highlights = "tree-sitter-xml/queries/dtd/highlights.scm",
 };
 
 pub const fish = .{
@@ -304,7 +304,7 @@ pub const xml = .{
     .icon = "󰗀",
     .extensions = .{"xml"},
     .comment = "<!--",
-    .highlights = "tree-sitter-xml/xml/queries/highlights.scm",
+    .highlights = "tree-sitter-xml/queries/xml/highlights.scm",
     .first_line_matches = .{ .prefix = "<?xml " },
 };
 
