@@ -182,6 +182,14 @@ pub const nasm = .{
     .injections = "tree-sitter-nasm/queries/injections.scm",
 };
 
+pub const nim = .{
+    .color = 0xffe953,
+    .icon = "",
+    .extensions = .{"nim"},
+    .comment = "#",
+    .language_server = .{"nimlangserver"},
+};
+
 pub const ninja = .{
     .extensions = .{"ninja"},
     .comment = "#",
