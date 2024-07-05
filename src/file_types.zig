@@ -142,6 +142,13 @@ pub const json = .{
     .language_server = .{ "deno", "lsp" },
 };
 
+pub const kdl = .{
+    .color = 0x000000,
+    .icon = "",
+    .extensions = .{"kdl"},
+    .comment = "//",
+};
+
 pub const lua = .{
     .color = 0x02027d,
     .icon = "󰢱",
