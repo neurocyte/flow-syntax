@@ -109,7 +109,7 @@ pub const haskell = .{
     .icon = "󰲒",
     .extensions = .{"hs"},
     .comment = "--",
-    .language_server = .{"haskell-language-server-wrapper"},
+    .language_server = .{"haskell-language-server-wrapper", "lsp"},
 };
 
 pub const html = .{
