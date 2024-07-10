@@ -321,6 +321,13 @@ pub const xml = .{
     .first_line_matches = .{ .prefix = "<?xml " },
 };
 
+pub const yaml = .{
+    .color = 0x000000,
+    .icon = "",
+    .extensions = .{"yaml", "yml"},
+    .comment = "#",
+};
+
 pub const zig = .{
     .color = 0xf7a41d,
     .icon = "",
