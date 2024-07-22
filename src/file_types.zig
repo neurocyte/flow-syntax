@@ -118,8 +118,8 @@ pub const html = .{
     .extensions = .{"html"},
     .comment = "<!--",
     .injections = "tree-sitter-html/queries/injections.scm",
-    .language_server = .{ "super", "lsp" }, // https://github.com/kristoff-it/super-html.git
-    .formatter = .{ "super", "fmt", "--stdin" },
+    .language_server = .{ "superhtml", "lsp" }, // https://github.com/kristoff-it/super-html.git
+    .formatter = .{ "superhtml", "fmt", "--stdin" },
 };
 
 pub const java = .{
