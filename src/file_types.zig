@@ -122,6 +122,17 @@ pub const html = .{
     .formatter = .{ "superhtml", "fmt", "--stdin" },
 };
 
+pub const shtml = .{
+    .color = 0xe54d26,
+    .icon = "󰌝",
+    .extensions = .{"shtml"},
+    .comment = "<!--",
+    .highlights = "tree-sitter-superhtml/tree-sitter-superhtml/queries/highlights.scm",
+    .injections = "tree-sitter-superhtml/tree-sitter-superhtml/queries/injections.scm",
+    .language_server = .{ "superhtml", "lsp" },
+    .formatter = .{ "superhtml", "fmt", "--stdin-super" },
+};
+
 pub const java = .{
     .color = 0xEA2D2E,
     .icon = "",

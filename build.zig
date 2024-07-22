@@ -52,6 +52,7 @@ pub fn build(b: *std.Build) void {
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-ssh-config/queries/highlights.scm"),
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-scala/queries/scala/highlights.scm"),
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-scheme/queries/highlights.scm"),
+            ts_queryfile(b, tree_sitter_dep, "tree-sitter-superhtml/tree-sitter-superhtml/queries/highlights.scm"),
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-toml/queries/highlights.scm"),
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-typescript/queries/highlights.scm"),
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-xml/queries/dtd/highlights.scm"),
@@ -76,6 +77,7 @@ pub fn build(b: *std.Build) void {
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-purescript/queries/injections.scm"),
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-purescript/vim_queries/injections.scm"),
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-rust/queries/injections.scm"),
+            ts_queryfile(b, tree_sitter_dep, "tree-sitter-superhtml/tree-sitter-superhtml/queries/injections.scm"),
             ts_queryfile(b, tree_sitter_dep, "tree-sitter-zig/queries/injections.scm"),
         },
     });
