@@ -122,7 +122,7 @@ pub const html = .{
     .formatter = .{ "superhtml", "fmt", "--stdin" },
 };
 
-pub const shtml = .{
+pub const superhtml = .{
     .color = 0xe54d26,
     .icon = "󰌝",
     .extensions = .{"shtml"},
