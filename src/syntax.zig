@@ -54,13 +54,9 @@ pub fn destroy(self: *Self) void {
     self.a.destroy(self);
 }
 
-fn parse(self: *Self, content: []const u8) !void {
+pub fn refresh_full(self: *Self, content: []const u8) !void {
     if (self.tree) |tree| tree.destroy();
     self.tree = try self.parser.parseString(null, content);
-}
-
-pub fn refresh_full(self: *Self, content: []const u8) !void {
-    return self.parse(content);
 }
 
 pub fn edit(self: *Self, ed: Edit) void {
@@ -71,6 +67,37 @@ pub fn refresh(self: *Self, content: []const u8) !void {
     const old_tree = self.tree;
     defer if (old_tree) |tree| tree.destroy();
     self.tree = try self.parser.parseString(old_tree, content);
+}
+
+pub fn refresh_from_buffer(self: *Self, buffer: anytype, metrics: anytype) !void {
+    const old_tree = self.tree;
+    defer if (old_tree) |tree| tree.destroy();
+
+    const State = struct {
+        buffer: @TypeOf(buffer),
+        metrics: @TypeOf(metrics),
+        syntax: *Self,
+        result_buf: [1024]u8 = undefined,
+    };
+    var state: State = .{
+        .buffer = buffer,
+        .metrics = metrics,
+        .syntax = self,
+    };
+
+    const input: treez.Input = .{
+        .payload = &state,
+        .read = struct {
+            fn read(payload: ?*anyopaque, _: u32, position: treez.Point, bytes_read: *u32) callconv(.C) [*:0]const u8 {
+                const ctx: *State = @ptrCast(@alignCast(payload orelse return ""));
+                const result = ctx.buffer.get_from_pos(.{ .row = position.row, .col = position.column }, &ctx.result_buf, ctx.metrics);
+                bytes_read.* = @intCast(result.len);
+                return @ptrCast(result.ptr);
+            }
+        }.read,
+        .encoding = .utf_8,
+    };
+    self.tree = try self.parser.parse(old_tree, input);
 }
 
 fn CallBack(comptime T: type) type {
