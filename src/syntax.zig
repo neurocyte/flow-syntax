@@ -33,7 +33,7 @@ pub fn create(file_type: *const FileType, a: std.mem.Allocator, content: []const
     };
     errdefer self.destroy();
     try self.parser.setLanguage(self.lang);
-    try self.parse(content);
+    try self.refresh_full(content);
     return self;
 }
 
