@@ -104,7 +104,7 @@ fn vec(comptime args: anytype) []const []const u8 {
 
 fn load_file_types(comptime Namespace: type) []const FileType {
     comptime switch (@typeInfo(Namespace)) {
-        .Struct => |info| {
+        .@"struct" => |info| {
             var count = 0;
             for (info.decls) |_| {
                 // @compileLog(decl.name, @TypeOf(@field(Namespace, decl.name)));
