@@ -43,6 +43,10 @@ pub const cpp = .{
     .icon = "",
     .extensions = .{ "cc", "cpp", "cxx", "hpp", "hxx", "h", "ipp", "ixx" },
     .comment = "//",
+    .highlights_list = .{
+        "tree-sitter-c/queries/highlights.scm",
+        "tree-sitter-cpp/queries/highlights.scm",
+    },
     .injections = "tree-sitter-cpp/queries/injections.scm",
     .formatter = .{"clang-format"},
     .language_server = .{"clangd"},
@@ -243,6 +247,16 @@ pub const nix = .{
     .injections = "tree-sitter-nix/queries/injections.scm",
 };
 
+pub const nu = .{
+    .color = 0x3AA675,
+    .icon = ">",
+    .extensions = .{ "nu", "nushell" },
+    .comment = "#",
+    .language_server = .{"nu", "--lsp"},
+    .highlights = "tree-sitter-nu/queries/nu/highlights.scm",
+    .injections = "tree-sitter-nu/queries/nu/injections.scm",
+};
+
 pub const ocaml = .{
     .color = 0xF18803,
     .icon = "",
@@ -346,6 +360,15 @@ pub const typst = .{
     .language_server = .{"tinymist"},
     .highlights = "tree-sitter-typst/queries/typst/highlights.scm",
     .injections = "tree-sitter-typst/queries/typst/injections.scm",
+};
+
+pub const vim = .{
+    .color = 0x007f00,
+    .icon = "",
+    .extensions = .{"vim"},
+    .comment = "\"",
+    .highlights = "tree-sitter-vim/queries/vim/highlights.scm",
+    .injections = "tree-sitter-vim/queries/vim/injections.scm",
 };
 
 pub const xml = .{
