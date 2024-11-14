@@ -4,8 +4,8 @@
 
     .dependencies = .{
         .@"tree-sitter" = .{
-            .url = "https://github.com/neurocyte/tree-sitter/releases/download/master-74949eca4342fcf7c9edef0dd611f6fb7bfa662f/source.tar.gz",
-            .hash = "12207077255900fc581f9ee88bdb2f7baa7c2bce32ba0b3c2c5a5207c7168fb6f56e",
+            .url = "https://github.com/neurocyte/tree-sitter/archive/refs/tags/master-dd309424e01e47c9161ecaf727608a97151a0793.tar.gz",
+            .hash = "1220a0344f2b0d44c4031a45d01658d19ec8899cca112a0875e9096c91b5c59d17bc",
         },
     },
     .paths = .{

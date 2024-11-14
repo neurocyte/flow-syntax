@@ -110,6 +110,16 @@ pub const gitcommit = .{
     .injections = "tree-sitter-gitcommit/queries/injections.scm",
 };
 
+pub const gleam = .{
+    .color = 0xffaff3,
+    .icon = "",
+    .extensions = .{"gleam"},
+    .comment = "//",
+    .language_server = .{"gleam", "lsp"},
+    .formatter = .{"gleam", "format"}
+    .highlights = "tree-sitter-gleam/queries/gleam/highlights.scm",
+};
+
 pub const go = .{
     .color = 0x00acd7,
     .icon = "󰟓",
