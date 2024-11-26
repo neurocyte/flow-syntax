@@ -15,7 +15,7 @@ pub const bash = .{
 
 pub const c = .{
     .icon = "",
-    .extensions = .{ "c", "h" },
+    .extensions = .{"c"},
     .comment = "//",
     .formatter = .{"clang-format"},
     .language_server = .{"clangd"},
@@ -36,6 +36,17 @@ pub const conf = .{
     .highlights = fish.highlights,
     .comment = "#",
     .parser = fish.parser,
+};
+
+pub const cmake = .{
+    .color = 0x004078,
+    .icon = "",
+    .extensions = .{ "CMakeLists.txt", "cmake", "cmake.in" },
+    .comment = "#",
+    .highlights = "queries/cmake/highlights.scm",
+    .injections = "queries/cmake/injections.scm",
+    .formatter = .{"cmake-format"},
+    .language_server = .{"cmake-language-server"},
 };
 
 pub const cpp = .{
@@ -110,12 +121,27 @@ pub const gitcommit = .{
     .injections = "tree-sitter-gitcommit/queries/injections.scm",
 };
 
+pub const gleam = .{
+    .color = 0xffaff3,
+    .icon = "󰦥",
+    .extensions = .{"gleam"},
+    .comment = "//",
+    .language_server = .{ "gleam", "lsp" },
+    .formatter = .{ "gleam", "format", "--stdin" },
+};
+
 pub const go = .{
     .color = 0x00acd7,
     .icon = "󰟓",
     .extensions = .{"go"},
     .comment = "//",
     .language_server = .{"gopls"},
+    .formatter = .{"gofmt"},
+};
+
+pub const hare = .{
+    .extensions = .{"ha"},
+    .comment = "//",
 };
 
 pub const haskell = .{
@@ -168,6 +194,14 @@ pub const json = .{
     .comment = "//",
     .language_server = .{ "deno", "lsp" },
     .formatter = .{ "hjson", "-j" },
+};
+
+pub const julia = .{
+    .color = 0x4D64AE,
+    .icon = "",
+    .extensions = .{"jl"},
+    .comment = "#",
+    .language_server = .{ "julia", "-e", "using LanguageServer; runserver()" },
 };
 
 pub const kdl = .{
@@ -252,7 +286,7 @@ pub const nu = .{
     .icon = ">",
     .extensions = .{ "nu", "nushell" },
     .comment = "#",
-    .language_server = .{"nu", "--lsp"},
+    .language_server = .{ "nu", "--lsp" },
     .highlights = "tree-sitter-nu/queries/nu/highlights.scm",
     .injections = "tree-sitter-nu/queries/nu/injections.scm",
 };
@@ -302,7 +336,7 @@ pub const python = .{
     .icon = "󰌠",
     .extensions = .{"py"},
     .comment = "#",
-    .first_line_matches = .{ .prefix = "#!", .content = "/bin/bash" },
+    .first_line_matches = .{ .prefix = "#!", .content = "python" },
     .language_server = .{"pylsp"},
 };
 
@@ -316,6 +350,7 @@ pub const ruby = .{
     .icon = "󰴭",
     .extensions = .{"rb"},
     .comment = "#",
+    .language_server = .{"ruby-lsp"},
 };
 
 pub const rust = .{
@@ -335,6 +370,15 @@ pub const scheme = .{
 pub const @"ssh-config" = .{
     .extensions = .{".ssh/config"},
     .comment = "#",
+};
+
+pub const swift = .{
+    .color = 0xf05138,
+    .icon = "󰛥",
+    .extensions = .{ "swift", "swiftinterface" },
+    .comment = "//",
+    .language_server = .{"sourcekit-lsp"},
+    .formatter = .{"swift-format"},
 };
 
 pub const toml = .{
