@@ -1,3 +1,5 @@
+const ft = @import("file_type.zig");
+
 pub const agda = .{
     .description = "Agda",
     .extensions = .{"agda"},
@@ -10,7 +12,7 @@ pub const bash = .{
     .icon = "󱆃",
     .extensions = .{ "sh", "bash", ".profile" },
     .comment = "#",
-    .first_line_matches = .{ .prefix = "#!", .content = "sh" },
+    .first_line_matches = ft.FirstLineMatch{ .prefix = "#!", .content = "sh" },
     .formatter = .{ "shfmt", "--indent", "4" },
     .language_server = .{ "bash-language-server", "start" },
 };
@@ -244,7 +246,7 @@ pub const lua = .{
     .extensions = .{"lua"},
     .comment = "--",
     .injections = "tree-sitter-lua/queries/injections.scm",
-    .first_line_matches = .{ .prefix = "--", .content = "lua" },
+    .first_line_matches = ft.FirstLineMatch{ .prefix = "--", .content = "lua" },
     .language_server = .{"lua-lsp"},
 };
 
@@ -254,7 +256,7 @@ pub const mail = .{
     .extensions = .{ "eml", "mbox" },
     .comment = ">",
     .highlights = "tree-sitter-mail/queries/mail/highlights.scm",
-    .first_line_matches = .{ .prefix = "From" },
+    .first_line_matches = ft.FirstLineMatch{ .prefix = "From" },
 };
 
 pub const make = .{
@@ -397,7 +399,7 @@ pub const python = .{
     .icon = "󰌠",
     .extensions = .{ "py", "pyi" },
     .comment = "#",
-    .first_line_matches = .{ .prefix = "#!", .content = "python" },
+    .first_line_matches = ft.FirstLineMatch{ .prefix = "#!", .content = "python" },
     .language_server = .{"pylsp"},
 };
 
@@ -492,7 +494,7 @@ pub const xml = .{
     .extensions = .{"xml"},
     .comment = "<!--",
     .highlights = "tree-sitter-xml/queries/xml/highlights.scm",
-    .first_line_matches = .{ .prefix = "<?xml " },
+    .first_line_matches = ft.FirstLineMatch{ .prefix = "<?xml " },
     .formatter = .{ "xmllint", "--format", "-" },
 };
 
