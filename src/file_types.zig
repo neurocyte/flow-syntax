@@ -532,3 +532,10 @@ pub const @"ziggy-schema" = .{
     .comment = "//",
     .highlights = "tree-sitter-ziggy/tree-sitter-ziggy-schema/queries/highlights.scm",
 };
+
+pub const sql = .{
+    .description = "SQL",
+    .extensions = .{"sql"},
+    .comment = "--",
+    .highlights = "tree-sitter-sql/queries/highlights.scm",
+};
