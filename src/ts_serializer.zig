@@ -5,6 +5,7 @@
 /// Yes,... it is not a public API! Here be dragons!
 ///
 const std = @import("std");
+const Io = std.Io;
 const cbor = @import("cbor");
 const build_options = @import("build_options");
 const treez = if (build_options.use_tree_sitter) @import("treez") else @import("treez_dummy.zig");
@@ -13,7 +14,7 @@ pub const Slice = extern struct {
     offset: u32,
     length: u32,
 
-    pub fn cborEncode(self: *const @This(), writer: anytype) !void {
+    pub fn cborEncode(self: *const @This(), writer: *Io.Writer) !void {
         return cbor.writeArray(writer, self.*);
     }
 
@@ -31,7 +32,7 @@ pub fn Array(T: type) type {
         size: u32,
         capacity: u32,
 
-        pub fn cborEncode(self: *const @This(), writer: anytype) !void {
+        pub fn cborEncode(self: *const @This(), writer: *Io.Writer) !void {
             if (self.contents) |contents| {
                 const arr: []T = @as([*]T, @ptrCast(contents))[0..self.size];
                 try cbor.writeValue(writer, arr);
@@ -53,7 +54,7 @@ pub fn Array(T: type) type {
             if (T == u8) {
                 var arr: []const u8 = undefined;
                 if (try cbor.matchValue(iter, cbor.extract(&arr))) {
-                    self.contents = @constCast(@ptrCast(arr.ptr));
+                    self.contents = @ptrCast(@constCast(arr.ptr));
                     self.size = @intCast(arr.len);
                     self.capacity = @intCast(arr.len);
                     return true;
@@ -74,7 +75,7 @@ pub fn Array(T: type) type {
                 }
                 i += 1;
             }
-            self.contents = @constCast(@ptrCast(arr.ptr));
+            self.contents = @ptrCast(@constCast(arr.ptr));
             self.size = @intCast(arr.len);
             self.capacity = @intCast(arr.len);
             return true;
@@ -86,7 +87,7 @@ pub const SymbolTable = extern struct {
     characters: Array(u8),
     slices: Array(Slice),
 
-    pub fn cborEncode(self: *const @This(), writer: anytype) !void {
+    pub fn cborEncode(self: *const @This(), writer: *Io.Writer) !void {
         return cbor.writeArray(writer, self.*);
     }
 
@@ -103,7 +104,7 @@ pub const PatternEntry = extern struct {
     pattern_index: u16,
     is_rooted: bool,
 
-    pub fn cborEncode(self: *const @This(), writer: anytype) !void {
+    pub fn cborEncode(self: *const @This(), writer: *Io.Writer) !void {
         return cbor.writeArray(writer, self.*);
     }
 
@@ -122,7 +123,7 @@ pub const QueryPattern = extern struct {
     end_byte: u32,
     is_non_local: bool,
 
-    pub fn cborEncode(self: *const @This(), writer: anytype) !void {
+    pub fn cborEncode(self: *const @This(), writer: *Io.Writer) !void {
         return cbor.writeArray(writer, self.*);
     }
 
@@ -140,7 +141,7 @@ pub const StepOffset = extern struct {
     byte_offset: u32,
     step_index: u16,
 
-    pub fn cborEncode(self: *const @This(), writer: anytype) !void {
+    pub fn cborEncode(self: *const @This(), writer: *Io.Writer) !void {
         return cbor.writeArray(writer, self.*);
     }
 
@@ -177,7 +178,7 @@ pub const QueryStep = extern struct {
     // parent_pattern_guaranteed: u1,
     flags16: u8,
 
-    pub fn cborEncode(self: *const @This(), writer: anytype) !void {
+    pub fn cborEncode(self: *const @This(), writer: *Io.Writer) !void {
         return cbor.writeArray(writer, self.*);
     }
 
@@ -206,7 +207,7 @@ pub const PredicateStep = extern struct {
     type: Type,
     value_id: u32,
 
-    pub fn cborEncode(self: *const @This(), writer: anytype) !void {
+    pub fn cborEncode(self: *const @This(), writer: *Io.Writer) !void {
         return cbor.writeArray(writer, self.*);
     }
 
@@ -234,7 +235,7 @@ pub const TSQuery = extern struct {
     // language: ?*const treez.Language,
     wildcard_root_pattern_count: u16,
 
-    pub fn cborEncode(self: *const @This(), writer: anytype) !void {
+    pub fn cborEncode(self: *const @This(), writer: *Io.Writer) !void {
         return cbor.writeArray(writer, self.*);
     }
 
@@ -262,13 +263,14 @@ pub const TSQuery = extern struct {
 pub const SerializeError = error{OutOfMemory};
 
 pub fn toCbor(query: *TSQuery, allocator: std.mem.Allocator) SerializeError![]const u8 {
-    var cb: std.ArrayListUnmanaged(u8) = .empty;
-    defer cb.deinit(allocator);
-    try cbor.writeValue(cb.writer(allocator), query.*);
-    return cb.toOwnedSlice(allocator);
+    var cb: Io.Writer.Allocating = .init(allocator);
+    defer cb.deinit();
+    cbor.writeValue(&cb.writer, query.*) catch return error.OutOfMemory;
+    return cb.toOwnedSlice();
 }
 
 pub const DeserializeError = error{
+    WriteFailed,
     OutOfMemory,
     IntegerTooLarge,
     IntegerTooSmall,
@@ -277,6 +279,8 @@ pub const DeserializeError = error{
     InvalidFloatType,
     InvalidArrayType,
     InvalidPIntType,
+    InvalidMapType,
+    InvalidUnion,
     JsonIncompatibleType,
     InvalidQueryCbor,
     NotAnObject,

@@ -25,9 +25,8 @@ pub fn main() anyerror!void {
     };
     defer output_file.close();
 
-    var output = std.ArrayList(u8).init(allocator);
-    defer output.deinit();
-    const writer = output.writer();
+    var output = std.Io.Writer.Allocating.init(allocator);
+    const writer = &output.writer;
 
     try cbor.writeMapHeader(writer, file_types.len);
 
@@ -38,7 +37,7 @@ pub fn main() anyerror!void {
         try cbor.writeMapHeader(writer, if (file_type.injections) |_| 3 else 2);
 
         const highlights_in = try treez.Query.create(lang, file_type.highlights);
-        const ts_highlights_in: *tss.TSQuery = @alignCast(@ptrCast(highlights_in));
+        const ts_highlights_in: *tss.TSQuery = @ptrCast(@alignCast(highlights_in));
 
         const highlights_cb = try tss.toCbor(ts_highlights_in, allocator);
         defer allocator.free(highlights_cb);
@@ -49,7 +48,7 @@ pub fn main() anyerror!void {
             std.log.info("file_type {s} highlights {d} bytes", .{ file_type.name, highlights_cb.len });
 
         const errors_in = try treez.Query.create(lang, "(ERROR) @error");
-        const ts_errors_in: *tss.TSQuery = @alignCast(@ptrCast(errors_in));
+        const ts_errors_in: *tss.TSQuery = @ptrCast(@alignCast(errors_in));
 
         const errors_cb = try tss.toCbor(ts_errors_in, allocator);
         defer allocator.free(errors_cb);
@@ -61,7 +60,7 @@ pub fn main() anyerror!void {
 
         if (file_type.injections) |injections| {
             const injections_in = try treez.Query.create(lang, injections);
-            const ts_injections_in: *tss.TSQuery = @alignCast(@ptrCast(injections_in));
+            const ts_injections_in: *tss.TSQuery = @ptrCast(@alignCast(injections_in));
 
             const injections_cb = try tss.toCbor(ts_injections_in, allocator);
             defer allocator.free(injections_cb);
@@ -73,9 +72,9 @@ pub fn main() anyerror!void {
         }
     }
 
-    try output_file.writeAll(output.items);
+    try output_file.writeAll(output.written());
     if (verbose)
-        std.log.info("file_types total {d} bytes", .{output.items.len});
+        std.log.info("file_types total {d} bytes", .{output.written().len});
 }
 
 fn fatal(comptime format: []const u8, args: anytype) noreturn {
