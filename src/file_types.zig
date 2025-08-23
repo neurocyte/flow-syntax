@@ -440,7 +440,8 @@ pub const python = .{
     .extensions = .{ "py", "pyi" },
     .comment = "#",
     .first_line_matches = FirstLineMatch{ .prefix = "#!", .content = "python" },
-    .language_server = .{"pylsp"},
+    .language_server = .{"ruff", "server"},
+    .formatter = .{"ruff", "format", "-"},
 };
 
 pub const regex = .{
