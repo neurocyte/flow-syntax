@@ -17,8 +17,6 @@ lang_fn: LangFn,
 extensions: []const []const u8,
 first_line_matches: ?FirstLineMatch = null,
 comment: []const u8,
-formatter: ?[]const []const u8,
-language_server: ?[]const []const u8,
 
 pub fn get_by_name_static(name: []const u8) ?FileType {
     return FileType.static_file_types.get(name);
@@ -129,8 +127,6 @@ fn load_file_types(comptime Namespace: type) []const ListEntry {
                     .extensions = vec(args.extensions),
                     .comment = args.comment,
                     .first_line_matches = if (@hasField(@TypeOf(args), "first_line_matches")) args.first_line_matches else null,
-                    .formatter = if (@hasField(@TypeOf(args), "formatter")) vec(args.formatter) else null,
-                    .language_server = if (@hasField(@TypeOf(args), "language_server")) vec(args.language_server) else null,
                 } };
                 i += 1;
             }

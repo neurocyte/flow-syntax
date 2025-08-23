@@ -12,7 +12,6 @@ pub const astro = .{
     .icon = "",
     .extensions = .{"astro"},
     .comment = "//",
-    .language_server = .{ "astro-ls", "--stdio" },
 };
 
 pub const bash = .{
@@ -22,8 +21,6 @@ pub const bash = .{
     .extensions = .{ "sh", "bash", ".profile" },
     .comment = "#",
     .first_line_matches = FirstLineMatch{ .prefix = "#!", .content = "sh" },
-    .formatter = .{ "shfmt", "--indent", "4" },
-    .language_server = .{ "bash-language-server", "start" },
 };
 
 pub const c = .{
@@ -31,8 +28,6 @@ pub const c = .{
     .icon = "",
     .extensions = .{"c"},
     .comment = "//",
-    .formatter = .{"clang-format"},
-    .language_server = .{"clangd"},
 };
 
 pub const @"c-sharp" = .{
@@ -41,8 +36,6 @@ pub const @"c-sharp" = .{
     .icon = "󰌛",
     .extensions = .{"cs"},
     .comment = "//",
-    .language_server = .{ "OmniSharp", "-lsp" },
-    .formatter = .{ "csharpier", "format" },
 };
 
 pub const conf = .{
@@ -63,8 +56,6 @@ pub const cmake = .{
     .comment = "#",
     .highlights = "queries/cmake/highlights.scm",
     .injections = "queries/cmake/injections.scm",
-    .formatter = .{"cmake-format"},
-    .language_server = .{"cmake-language-server"},
 };
 
 pub const cpp = .{
@@ -78,8 +69,6 @@ pub const cpp = .{
         "tree-sitter-cpp/queries/highlights.scm",
     },
     .injections = "tree-sitter-cpp/queries/injections.scm",
-    .formatter = .{"clang-format"},
-    .language_server = .{"clangd"},
 };
 
 pub const css = .{
@@ -88,7 +77,6 @@ pub const css = .{
     .icon = "󰌜",
     .extensions = .{"css"},
     .comment = "//",
-    .language_server = .{ "vscode-css-language-server", "--stdio" },
 };
 
 pub const diff = .{
@@ -120,8 +108,6 @@ pub const elixir = .{
     .extensions = .{ "ex", "exs" },
     .comment = "#",
     .injections = "tree-sitter-elixir/queries/injections.scm",
-    .formatter = .{ "mix", "format", "-" },
-    .language_server = .{"elixir-ls"},
 };
 
 pub const fish = .{
@@ -155,8 +141,6 @@ pub const gleam = .{
     .icon = "󰦥",
     .extensions = .{"gleam"},
     .comment = "//",
-    .language_server = .{ "gleam", "lsp" },
-    .formatter = .{ "gleam", "format", "--stdin" },
 };
 
 pub const go = .{
@@ -165,8 +149,6 @@ pub const go = .{
     .icon = "󰟓",
     .extensions = .{"go"},
     .comment = "//",
-    .language_server = .{"gopls"},
-    .formatter = .{"gofmt"},
 };
 
 pub const hare = .{
@@ -181,7 +163,6 @@ pub const haskell = .{
     .icon = "󰲒",
     .extensions = .{"hs"},
     .comment = "--",
-    .language_server = .{ "haskell-language-server-wrapper", "lsp" },
 };
 
 pub const html = .{
@@ -191,8 +172,6 @@ pub const html = .{
     .extensions = .{"html"},
     .comment = "<!--",
     .injections = "tree-sitter-html/queries/injections.scm",
-    .language_server = .{ "superhtml", "lsp" }, // https://github.com/kristoff-it/super-html.git
-    .formatter = .{ "superhtml", "fmt", "--stdin" },
 };
 
 pub const superhtml = .{
@@ -203,8 +182,6 @@ pub const superhtml = .{
     .comment = "<!--",
     .highlights = "tree-sitter-superhtml/tree-sitter-superhtml/queries/highlights.scm",
     .injections = "tree-sitter-superhtml/tree-sitter-superhtml/queries/injections.scm",
-    .language_server = .{ "superhtml", "lsp" },
-    .formatter = .{ "superhtml", "fmt", "--stdin-super" },
 };
 
 pub const hurl = .{
@@ -231,16 +208,12 @@ pub const javascript = .{
     .extensions = .{"js"},
     .comment = "//",
     .injections = "tree-sitter-javascript/queries/injections.scm",
-    .language_server = .{ "typescript-language-server", "--stdio" },
-    .formatter = .{ "prettier", "--parser", "typescript" },
 };
 
 pub const json = .{
     .description = "JSON",
     .extensions = .{"json"},
     .comment = "//",
-    .language_server = .{ "vscode-json-language-server", "--stdio" },
-    .formatter = .{ "prettier", "--parser", "json" },
 };
 
 pub const julia = .{
@@ -249,8 +222,6 @@ pub const julia = .{
     .icon = "",
     .extensions = .{"jl"},
     .comment = "#",
-    .language_server = .{ "julia", "-e", "using LanguageServer; runserver()" },
-    .formatter = .{ "julia", "-e", "using JuliaFormatter; print(format_text(read(stdin, String)))" },
 };
 
 pub const kdl = .{
@@ -269,7 +240,6 @@ pub const lua = .{
     .comment = "--",
     .injections = "tree-sitter-lua/queries/injections.scm",
     .first_line_matches = FirstLineMatch{ .prefix = "--", .content = "lua" },
-    .language_server = .{"lua-lsp"},
 };
 
 pub const mail = .{
@@ -295,8 +265,6 @@ pub const markdown = .{
     .comment = "<!--",
     .highlights = "tree-sitter-markdown/tree-sitter-markdown/queries/highlights.scm",
     .injections = "tree-sitter-markdown/tree-sitter-markdown/queries/injections.scm",
-    .language_server = .{ "marksman", "server" },
-    .formatter = .{ "prettier", "--parser", "markdown" },
 };
 
 pub const @"markdown-inline" = .{
@@ -322,7 +290,6 @@ pub const nim = .{
     .icon = "",
     .extensions = .{"nim"},
     .comment = "#",
-    .language_server = .{"nimlangserver"},
 };
 
 pub const nimble = .{
@@ -348,8 +315,6 @@ pub const nix = .{
     .extensions = .{"nix"},
     .comment = "#",
     .injections = "tree-sitter-nix/queries/injections.scm",
-    .language_server = .{"nixd"},
-    .formatter = .{"alejandra"},
 };
 
 pub const nu = .{
@@ -358,7 +323,6 @@ pub const nu = .{
     .icon = ">",
     .extensions = .{ "nu", "nushell" },
     .comment = "#",
-    .language_server = .{ "nu", "--lsp" },
     .highlights = "tree-sitter-nu/queries/nu/highlights.scm",
     .injections = "tree-sitter-nu/queries/nu/injections.scm",
 };
@@ -369,8 +333,6 @@ pub const ocaml = .{
     .icon = "",
     .extensions = .{ "ml", "mli" },
     .comment = "(*",
-    .formatter = .{ "ocamlformat", "--profile=ocamlformat", "-" },
-    .language_server = .{ "ocamllsp", "--fallback-read-dot-merlin" },
 };
 
 pub const odin = .{
@@ -379,8 +341,6 @@ pub const odin = .{
     .comment = "//",
     .parser = @import("file_type.zig").Parser("odin"),
     .injections = "tree-sitter-odin/queries/injections.scm",
-    .language_server = .{"ols"},
-    .formatter = .{ "odinfmt", "-stdin" },
 };
 
 pub const openscad = .{
@@ -390,7 +350,6 @@ pub const openscad = .{
     .extensions = .{"scad"},
     .comment = "//",
     .injections = "tree-sitter-openscad/queries/injections.scm",
-    .language_server = .{"openscad-lsp"},
 };
 
 pub const org = .{
@@ -407,7 +366,6 @@ pub const php = .{
     .extensions = .{"php"},
     .comment = "//",
     .injections = "tree-sitter-php/queries/injections.scm",
-    .language_server = .{ "intelephense", "--stdio" },
 };
 
 pub const powershell = .{
@@ -440,7 +398,6 @@ pub const python = .{
     .extensions = .{ "py", "pyi" },
     .comment = "#",
     .first_line_matches = FirstLineMatch{ .prefix = "#!", .content = "python" },
-    .language_server = .{"pylsp"},
 };
 
 pub const regex = .{
@@ -463,7 +420,6 @@ pub const ruby = .{
     .icon = "󰴭",
     .extensions = .{"rb"},
     .comment = "#",
-    .language_server = .{"ruby-lsp"},
 };
 
 pub const rust = .{
@@ -473,8 +429,6 @@ pub const rust = .{
     .extensions = .{"rs"},
     .comment = "//",
     .injections = "tree-sitter-rust/queries/injections.scm",
-    .language_server = .{"rust-analyzer"},
-    .formatter = .{"rustfmt"},
 };
 
 pub const scheme = .{
@@ -502,8 +456,6 @@ pub const swift = .{
     .icon = "󰛥",
     .extensions = .{ "swift", "swiftinterface" },
     .comment = "//",
-    .language_server = .{"sourcekit-lsp"},
-    .formatter = .{"swift-format"},
 };
 
 pub const verilog = .{
@@ -512,8 +464,6 @@ pub const verilog = .{
     .comment = "//",
     .highlights = "nvim-treesitter/queries/verilog/highlights.scm",
     .injections = "nvim-treesitter/queries/verilog/injections.scm",
-    .language_server = .{"verible-verilog-ls"},
-    .formatter = .{ "verible-verilog-format", "-" },
 };
 
 pub const toml = .{
@@ -530,8 +480,6 @@ pub const typescript = .{
     .icon = "󰛦",
     .extensions = .{ "ts", "tsx" },
     .comment = "//",
-    .language_server = .{ "typescript-language-server", "--stdio" },
-    .formatter = .{ "prettier", "--parser", "typescript" },
 };
 
 pub const typst = .{
@@ -540,7 +488,6 @@ pub const typst = .{
     .icon = "t",
     .extensions = .{ "typst", "typ" },
     .comment = "//",
-    .language_server = .{"tinymist"},
     .highlights = "tree-sitter-typst/queries/typst/highlights.scm",
     .injections = "tree-sitter-typst/queries/typst/injections.scm",
 };
@@ -568,7 +515,6 @@ pub const xml = .{
     .comment = "<!--",
     .highlights = "tree-sitter-xml/queries/xml/highlights.scm",
     .first_line_matches = FirstLineMatch{ .prefix = "<?xml " },
-    .formatter = .{ "xmllint", "--format", "-" },
 };
 
 pub const yaml = .{
@@ -585,8 +531,6 @@ pub const zig = .{
     .icon = "",
     .extensions = .{ "zig", "zon" },
     .comment = "//",
-    .formatter = .{ "zig", "fmt", "--stdin" },
-    .language_server = .{"zls"},
     .injections = "tree-sitter-zig/queries/injections.scm",
 };
 
