@@ -118,6 +118,14 @@ pub const fish = .{
     .highlights = "tree-sitter-fish/queries/highlights.scm",
 };
 
+pub const @"fsharp" = .{
+    .description = "F#",
+    .color = 0x378bba,
+    .icon = "",
+    .extensions = .{"fs"},
+    .comment = "//",
+};
+
 pub const @"git-rebase" = .{
     .description = "Git (rebase)",
     .color = 0xf34f29,
