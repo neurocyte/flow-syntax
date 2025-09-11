@@ -71,6 +71,16 @@ pub const cpp = .{
     .injections = "tree-sitter-cpp/queries/injections.scm",
 };
 
+pub const csproj = .{
+    .description = "C# Project",
+    .color = 0x68217a,
+    .icon = "󰌛",
+    .extensions = .{"csproj"},
+    .comment = "<!--",
+    .highlights = "tree-sitter-xml/queries/xml/highlights.scm",
+    .parser = xml.parser,
+};
+
 pub const css = .{
     .description = "CSS",
     .color = 0x3d8fc6,
@@ -533,6 +543,7 @@ pub const xml = .{
     .comment = "<!--",
     .highlights = "tree-sitter-xml/queries/xml/highlights.scm",
     .first_line_matches = FirstLineMatch{ .prefix = "<?xml " },
+    .parser = @import("file_type.zig").Parser("xml"),
 };
 
 pub const yaml = .{
