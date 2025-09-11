@@ -71,6 +71,16 @@ pub const cpp = .{
     .injections = "tree-sitter-cpp/queries/injections.scm",
 };
 
+pub const csproj = .{
+    .description = "C# Project",
+    .color = 0x68217a,
+    .icon = "󰌛",
+    .extensions = .{"csproj"},
+    .comment = "<!--",
+    .highlights = "tree-sitter-xml/queries/xml/highlights.scm",
+    .parser = xml.parser,
+};
+
 pub const css = .{
     .description = "CSS",
     .color = 0x3d8fc6,
@@ -118,7 +128,7 @@ pub const fish = .{
     .highlights = "tree-sitter-fish/queries/highlights.scm",
 };
 
-pub const @"fsharp" = .{
+pub const fsharp = .{
     .description = "F#",
     .color = 0x378bba,
     .icon = "",
@@ -244,10 +254,10 @@ pub const commonlisp = .{
     .description = "Lisp",
     .color = 0xFFFFFF,
     .icon = "",
-    .extensions = .{"lisp", "ls", "el"},
+    .extensions = .{ "lisp", "ls", "el" },
     .comment = ";",
-    .highlights = "tree-sitter-scheme/queries/highlights.scm",
-    .parser = scheme.parser,
+    .highlights = "nvim-treesitter/queries/commonlisp/highlights.scm",
+    .injections = "nvim-treesitter/queries/commonlisp/injections.scm",
 };
 
 pub const lua = .{
@@ -393,6 +403,15 @@ pub const powershell = .{
     .comment = "#",
 };
 
+pub const props = .{
+    .description = "MSBuild Properties",
+    .icon = "",
+    .extensions = .{"Directory.Build.props"},
+    .comment = "<!--",
+    .highlights = "tree-sitter-xml/queries/xml/highlights.scm",
+    .parser = xml.parser,
+};
+
 pub const proto = .{
     .description = "protobuf (proto)",
     .extensions = .{"proto"},
@@ -452,7 +471,6 @@ pub const scheme = .{
     .description = "Scheme",
     .extensions = .{ "scm", "ss" },
     .comment = ";",
-    .parser = @import("file_type.zig").Parser("scheme"),
 };
 
 pub const sql = .{
@@ -533,6 +551,7 @@ pub const xml = .{
     .comment = "<!--",
     .highlights = "tree-sitter-xml/queries/xml/highlights.scm",
     .first_line_matches = FirstLineMatch{ .prefix = "<?xml " },
+    .parser = @import("file_type.zig").Parser("xml"),
 };
 
 pub const yaml = .{
