@@ -357,7 +357,6 @@ pub const odin = .{
     .description = "Odin",
     .extensions = .{"odin"},
     .comment = "//",
-    .parser = @import("file_type.zig").Parser("odin"),
     .injections = "tree-sitter-odin/queries/injections.scm",
 };
 
