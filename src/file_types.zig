@@ -256,8 +256,8 @@ pub const commonlisp = .{
     .icon = "",
     .extensions = .{ "lisp", "ls", "el" },
     .comment = ";",
-    .highlights = "tree-sitter-scheme/queries/highlights.scm",
-    .parser = scheme.parser,
+    .highlights = "nvim-treesitter/queries/commonlisp/highlights.scm",
+    .injections = "nvim-treesitter/queries/commonlisp/injections.scm",
 };
 
 pub const lua = .{
@@ -471,7 +471,6 @@ pub const scheme = .{
     .description = "Scheme",
     .extensions = .{ "scm", "ss" },
     .comment = ";",
-    .parser = @import("file_type.zig").Parser("scheme"),
 };
 
 pub const sql = .{

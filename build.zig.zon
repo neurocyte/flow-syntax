@@ -6,8 +6,8 @@
 
     .dependencies = .{
         .tree_sitter = .{
-            .url = "https://github.com/neurocyte/tree-sitter/releases/download/zig-0.14-f9fb7a84a1d7e1aeaa88b95ce2306c2e24e7b1b9/source.tar.gz",
-            .hash = "N-V-__8AAAbAVCqbNHeQBE-3LU1IcULUOEWAZaLueuct59Z9",
+            .url = "https://github.com/neurocyte/tree-sitter/releases/download/zig-0.14-442fdce63897329a7cf2f533508c6879e0e1c094/source.tar.gz",
+            .hash = "N-V-__8AAEzbrirOSwR2m8orFR06xmMmuA_m7wSxLi29ntV3",
         },
         .cbor = .{
             .url = "https://github.com/neurocyte/cbor/archive/1fccb83c70cd84e1dff57cc53f7db8fb99909a94.tar.gz",
