@@ -118,6 +118,14 @@ pub const fish = .{
     .highlights = "tree-sitter-fish/queries/highlights.scm",
 };
 
+pub const @"fsharp" = .{
+    .description = "F#",
+    .color = 0x378bba,
+    .icon = "",
+    .extensions = .{"fs"},
+    .comment = "//",
+};
+
 pub const @"git-rebase" = .{
     .description = "Git (rebase)",
     .color = 0xf34f29,
@@ -232,6 +240,16 @@ pub const kdl = .{
     .comment = "//",
 };
 
+pub const commonlisp = .{
+    .description = "Lisp",
+    .color = 0xFFFFFF,
+    .icon = "",
+    .extensions = .{"lisp", "ls", "el"},
+    .comment = ";",
+    .highlights = "tree-sitter-scheme/queries/highlights.scm",
+    .parser = scheme.parser,
+};
+
 pub const lua = .{
     .description = "Lua",
     .color = 0x02027d,
@@ -339,7 +357,6 @@ pub const odin = .{
     .description = "Odin",
     .extensions = .{"odin"},
     .comment = "//",
-    .parser = @import("file_type.zig").Parser("odin"),
     .injections = "tree-sitter-odin/queries/injections.scm",
 };
 
@@ -433,8 +450,9 @@ pub const rust = .{
 
 pub const scheme = .{
     .description = "Scheme",
-    .extensions = .{ "scm", "ss", "el" },
+    .extensions = .{ "scm", "ss" },
     .comment = ";",
+    .parser = @import("file_type.zig").Parser("scheme"),
 };
 
 pub const sql = .{
