@@ -128,7 +128,7 @@ pub const fish = .{
     .highlights = "tree-sitter-fish/queries/highlights.scm",
 };
 
-pub const @"fsharp" = .{
+pub const fsharp = .{
     .description = "F#",
     .color = 0x378bba,
     .icon = "",
@@ -254,7 +254,7 @@ pub const commonlisp = .{
     .description = "Lisp",
     .color = 0xFFFFFF,
     .icon = "",
-    .extensions = .{"lisp", "ls", "el"},
+    .extensions = .{ "lisp", "ls", "el" },
     .comment = ";",
     .highlights = "tree-sitter-scheme/queries/highlights.scm",
     .parser = scheme.parser,
