@@ -240,6 +240,16 @@ pub const kdl = .{
     .comment = "//",
 };
 
+pub const commonlisp = .{
+    .description = "Lisp",
+    .color = 0xFFFFFF,
+    .icon = "",
+    .extensions = .{"lisp", "ls", "el"},
+    .comment = ";",
+    .highlights = "tree-sitter-scheme/queries/highlights.scm",
+    .parser = scheme.parser,
+};
+
 pub const lua = .{
     .description = "Lua",
     .color = 0x02027d,
@@ -441,8 +451,9 @@ pub const rust = .{
 
 pub const scheme = .{
     .description = "Scheme",
-    .extensions = .{ "scm", "ss", "el" },
+    .extensions = .{ "scm", "ss" },
     .comment = ";",
+    .parser = @import("file_type.zig").Parser("scheme"),
 };
 
 pub const sql = .{
