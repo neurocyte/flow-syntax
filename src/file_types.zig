@@ -403,6 +403,15 @@ pub const powershell = .{
     .comment = "#",
 };
 
+pub const props = .{
+    .description = "MSBuild Properties",
+    .icon = "",
+    .extensions = .{"Directory.Build.props"},
+    .comment = "<!--",
+    .highlights = "tree-sitter-xml/queries/xml/highlights.scm",
+    .parser = xml.parser,
+};
+
 pub const proto = .{
     .description = "protobuf (proto)",
     .extensions = .{"proto"},
