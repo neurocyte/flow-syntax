@@ -6,12 +6,12 @@
 
     .dependencies = .{
         .tree_sitter = .{
-            .url = "https://github.com/neurocyte/tree-sitter/releases/download/master-6336e463f4182db5c9214731a6f468701c8453f0/source.tar.gz",
-            .hash = "tree_sitter-0.22.4-150-g7e3f5726-z0LhyJjkriqMCf8UfpkByt8-GdJpAEVJJeSr80P9kEcn",
+            .url = "https://github.com/neurocyte/tree-sitter/releases/download/master-1eda347ffea27cb3bf3a70b351497f0d3bc05576/source.tar.gz",
+            .hash = "tree_sitter-0.22.4-150-g7e3f5726-z0LhyJjkripTxUexgcbM6fOBWS8Qc9e83DiOUFPXjZIb",
         },
         .cbor = .{
-            .url = "git+https://github.com/neurocyte/cbor?ref=master#0708420594f5af0a8289e6e1bae0ae03f011731f",
-            .hash = "cbor-1.0.0-RcQE_CUwAQChkeU-LO-eTSbLAdRox-wuxUGmi2nDAWri",
+            .url = "git+https://github.com/neurocyte/cbor?ref=master#7d2eeb68c8a2fb3f4d6baad6cc04c521b92974c0",
+            .hash = "cbor-1.0.0-RcQE_AswAQAPlqBCZXYQf9DZXn-0Ubt8Mk03ZcJWcsAG",
         },
     },
     .paths = .{
