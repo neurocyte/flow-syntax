@@ -14,6 +14,13 @@ pub const astro = .{
     .comment = "//",
 };
 
+pub const awk = .{
+    .description = "Awk",
+    .icon = "",
+    .extensions = .{"awk", "gawk"},
+    .comment = "#",
+};
+
 pub const bash = .{
     .description = "Bash",
     .color = 0x3e474a,
