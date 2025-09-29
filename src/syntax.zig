@@ -180,18 +180,21 @@ pub fn highlights_at_point(self: *const Self, ctx: anytype, comptime cb: CallBac
     const tree = self.tree orelse return false;
     cursor.execute(self.query, tree.getRootNode());
     cursor.setPointRange(.{ .row = point.row, .column = 0 }, .{ .row = point.row + 1, .column = 0 });
+    var found_highlight = false;
     while (cursor.nextMatch()) |match| {
         for (match.captures()) |capture| {
             const range = capture.node.getRange();
             const start = range.start_point;
             const end = range.end_point;
             const scope = self.query.getCaptureNameForId(capture.id);
-            if (start.row == point.row and start.column <= point.column and point.column < end.column)
-                cb(ctx, range, scope, capture.id, 0, &capture.node) catch return true;
+            if (start.row == point.row and start.column <= point.column and point.column < end.column) {
+                cb(ctx, range, scope, capture.id, 0, &capture.node) catch return found_highlight;
+                found_highlight = true;
+            }
             break;
         }
     }
-    return false;
+    return found_highlight;
 }
 
 pub fn node_at_point_range(self: *const Self, range: Range) error{Stop}!treez.Node {
