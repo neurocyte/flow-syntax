@@ -329,6 +329,15 @@ pub const nasm = .{
     .injections = "tree-sitter-nasm/queries/injections.scm",
 };
 
+pub const nickel = .{
+    .description = "Nickel",
+    .color = 0xe1c3fd,
+    .icon = "",
+    .extensions = .{"ncl"},
+    .comment = "#",
+    .injections = "tree-sitter-nickel/queries/injections.scm",
+};
+
 pub const nim = .{
     .description = "Nim",
     .color = 0xffe953,
