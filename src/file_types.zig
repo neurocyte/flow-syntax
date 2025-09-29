@@ -199,6 +199,16 @@ pub const haskell = .{
     .comment = "--",
 };
 
+pub const hcl = .{
+    .description = "Terraform/HCL",
+    .color = 0x8956c4,
+    .icon = "",
+    .extensions = .{ "hcl", "tf", "tfvars" },
+    .comment = "#",
+    .highlights = "nvim-treesitter/queries/hcl/highlights.scm",
+    .injections = "nvim-treesitter/queries/hcl/injections.scm",
+};
+
 pub const html = .{
     .description = "HTML",
     .color = 0xe54d26,
