@@ -395,6 +395,14 @@ pub const php = .{
     .injections = "tree-sitter-php/queries/injections.scm",
 };
 
+pub const po = .{
+    .description = "Gettext Message Catalog",
+    .icon = "",
+    .extensions = .{"po"},
+    .comment = "#",
+    .injections = "tree-sitter-po/queries/injections.scm",
+};
+
 pub const powershell = .{
     .description = "PowerShell",
     .color = 0x0873c5,
