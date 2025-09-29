@@ -127,6 +127,15 @@ pub const elixir = .{
     .injections = "tree-sitter-elixir/queries/injections.scm",
 };
 
+pub const elm = .{
+    .description = "Elm",
+    .color = 0x0e76ad,
+    .icon = "",
+    .extensions = .{ "elm" },
+    .comment = "--",
+    .injections = "tree-sitter-elm/queries/injections.scm",
+};
+
 pub const fish = .{
     .description = "Fish",
     .extensions = .{"fish"},
