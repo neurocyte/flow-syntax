@@ -257,6 +257,16 @@ pub const kdl = .{
     .comment = "//",
 };
 
+pub const latex = .{
+    .description = "LaTeX",
+    .color = 0x008080,
+    .icon = "",
+    .extensions = .{ "tex", "aux", "sty", "cls" },
+    .comment = "%",
+    .highlights = "nvim-treesitter/queries/latex/highlights.scm",
+    .injections = "nvim-treesitter/queries/latex/injections.scm",
+};
+
 pub const commonlisp = .{
     .description = "Lisp",
     .color = 0xFFFFFF,
