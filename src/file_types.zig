@@ -450,7 +450,7 @@ pub const php = .{
 };
 
 pub const po = .{
-    .description = "Gettext Message Catalog",
+    .description = "Gettext (po)",
     .icon = "",
     .extensions = .{"po"},
     .comment = "#",
