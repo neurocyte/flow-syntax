@@ -14,6 +14,13 @@ pub const astro = .{
     .comment = "//",
 };
 
+pub const awk = .{
+    .description = "Awk",
+    .icon = "",
+    .extensions = .{"awk", "gawk"},
+    .comment = "#",
+};
+
 pub const bash = .{
     .description = "Bash",
     .color = 0x3e474a,
@@ -120,6 +127,15 @@ pub const elixir = .{
     .injections = "tree-sitter-elixir/queries/injections.scm",
 };
 
+pub const elm = .{
+    .description = "Elm",
+    .color = 0x0e76ad,
+    .icon = "",
+    .extensions = .{ "elm" },
+    .comment = "--",
+    .injections = "tree-sitter-elm/queries/injections.scm",
+};
+
 pub const fish = .{
     .description = "Fish",
     .extensions = .{"fish"},
@@ -181,6 +197,16 @@ pub const haskell = .{
     .icon = "󰲒",
     .extensions = .{"hs"},
     .comment = "--",
+};
+
+pub const hcl = .{
+    .description = "Terraform/HCL",
+    .color = 0x8956c4,
+    .icon = "",
+    .extensions = .{ "hcl", "tf", "tfvars" },
+    .comment = "#",
+    .highlights = "nvim-treesitter/queries/hcl/highlights.scm",
+    .injections = "nvim-treesitter/queries/hcl/injections.scm",
 };
 
 pub const html = .{
@@ -250,6 +276,16 @@ pub const kdl = .{
     .comment = "//",
 };
 
+pub const latex = .{
+    .description = "LaTeX",
+    .color = 0x008080,
+    .icon = "",
+    .extensions = .{ "tex", "aux", "sty", "cls" },
+    .comment = "%",
+    .highlights = "nvim-treesitter/queries/latex/highlights.scm",
+    .injections = "nvim-treesitter/queries/latex/injections.scm",
+};
+
 pub const commonlisp = .{
     .description = "Lisp",
     .color = 0xFFFFFF,
@@ -310,6 +346,15 @@ pub const nasm = .{
     .extensions = .{ "asm", "nasm" },
     .comment = "#",
     .injections = "tree-sitter-nasm/queries/injections.scm",
+};
+
+pub const nickel = .{
+    .description = "Nickel",
+    .color = 0xe1c3fd,
+    .icon = "",
+    .extensions = .{"ncl"},
+    .comment = "#",
+    .injections = "tree-sitter-nickel/queries/injections.scm",
 };
 
 pub const nim = .{
@@ -386,6 +431,15 @@ pub const org = .{
     .comment = "#",
 };
 
+pub const perl = .{
+    .description = "Perl",
+    .color = 0x005c81,
+    .icon = "",
+    .extensions = .{"pl", "pm", "t"},
+    .comment = "#",
+    .injections = "tree-sitter-perl/queries/injections.scm",
+};
+
 pub const php = .{
     .description = "PHP",
     .color = 0x6181b6,
@@ -393,6 +447,14 @@ pub const php = .{
     .extensions = .{"php"},
     .comment = "//",
     .injections = "tree-sitter-php/queries/injections.scm",
+};
+
+pub const po = .{
+    .description = "Gettext (po)",
+    .icon = "",
+    .extensions = .{"po"},
+    .comment = "#",
+    .injections = "tree-sitter-po/queries/injections.scm",
 };
 
 pub const powershell = .{
