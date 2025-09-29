@@ -174,10 +174,10 @@ pub fn render(self: *const Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx
     }
 }
 
-pub fn highlights_at_point(self: *const Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), point: Point) void {
-    const cursor = Query.Cursor.create() catch return;
+pub fn highlights_at_point(self: *const Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), point: Point) bool {
+    const cursor = Query.Cursor.create() catch return false;
     defer cursor.destroy();
-    const tree = self.tree orelse return;
+    const tree = self.tree orelse return false;
     cursor.execute(self.query, tree.getRootNode());
     cursor.setPointRange(.{ .row = point.row, .column = 0 }, .{ .row = point.row + 1, .column = 0 });
     while (cursor.nextMatch()) |match| {
@@ -187,11 +187,11 @@ pub fn highlights_at_point(self: *const Self, ctx: anytype, comptime cb: CallBac
             const end = range.end_point;
             const scope = self.query.getCaptureNameForId(capture.id);
             if (start.row == point.row and start.column <= point.column and point.column < end.column)
-                cb(ctx, range, scope, capture.id, 0, &capture.node) catch return;
+                cb(ctx, range, scope, capture.id, 0, &capture.node) catch return true;
             break;
         }
     }
-    return;
+    return false;
 }
 
 pub fn node_at_point_range(self: *const Self, range: Range) error{Stop}!treez.Node {
