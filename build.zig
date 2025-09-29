@@ -78,6 +78,7 @@ pub fn build(b: *std.Build) void {
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-odin/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-openscad/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-org/queries/highlights.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-perl/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-php/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-po/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-powershell/queries/highlights.scm");
@@ -131,6 +132,7 @@ pub fn build(b: *std.Build) void {
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-nu/queries/nu/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-odin/queries/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-openscad/queries/injections.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-perl/queries/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-php/queries/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-po/queries/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-purescript/queries/injections.scm");

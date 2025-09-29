@@ -431,6 +431,15 @@ pub const org = .{
     .comment = "#",
 };
 
+pub const perl = .{
+    .description = "Perl",
+    .color = 0x005c81,
+    .icon = "",
+    .extensions = .{"pl", "pm", "t"},
+    .comment = "#",
+    .injections = "tree-sitter-perl/queries/injections.scm",
+};
+
 pub const php = .{
     .description = "PHP",
     .color = 0x6181b6,
