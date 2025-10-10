@@ -558,7 +558,7 @@ pub const swift = .{
 
 pub const verilog = .{
     .description = "SystemVerilog",
-    .extensions = .{ "sv", "svh" },
+    .extensions = .{ "sv", "svh", "v", "vh" },
     .comment = "//",
     .highlights = "nvim-treesitter/queries/verilog/highlights.scm",
     .injections = "nvim-treesitter/queries/verilog/injections.scm",
