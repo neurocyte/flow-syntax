@@ -646,7 +646,7 @@ pub const @"ziggy-schema" = .{
     .description = "Ziggy (schema)",
     .color = 0xf7a41d,
     .icon = "",
-    .extensions = .{ "ziggy-schema", "zyg-schema" },
+    .extensions = .{ "ziggy-schema", "zgy-schema" },
     .comment = "//",
     .highlights = "tree-sitter-ziggy/tree-sitter-ziggy-schema/queries/highlights.scm",
 };
