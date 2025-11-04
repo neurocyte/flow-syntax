@@ -110,6 +110,7 @@ pub fn build(b: *std.Build) void {
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/queries/commonlisp/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/queries/latex/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/queries/hcl/highlights.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/queries/rst/highlights.scm");
 
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "queries/cmake/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-astro/queries/injections.scm");
@@ -148,6 +149,7 @@ pub fn build(b: *std.Build) void {
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/queries/commonlisp/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/queries/latex/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/queries/hcl/injections.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/queries/rst/injections.scm");
 
     const syntax_mod = b.addModule("syntax", .{
         .root_source_file = b.path("src/syntax.zig"),

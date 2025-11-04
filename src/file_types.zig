@@ -512,6 +512,14 @@ pub const rpmspec = .{
     .comment = "#",
 };
 
+pub const rst = .{
+    .description = "reStructuredText",
+    .extensions = .{"rst"},
+    .comment = "..",
+    .highlights = "nvim-treesitter/queries/rst/highlights.scm",
+    .injections = "nvim-treesitter/queries/rst/injections.scm",
+};
+
 pub const ruby = .{
     .description = "Ruby",
     .color = 0xd91404,
