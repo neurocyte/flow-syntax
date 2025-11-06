@@ -87,6 +87,7 @@ pub const Tree = struct {
     pub fn edit(_: *Tree, _: *const InputEdit) void {}
 };
 pub const Node = struct {
+    tree: ?*Tree = null,
     var dummy: @This() = .{};
     pub fn getRange(_: *const @This()) Range {
         return .{};
