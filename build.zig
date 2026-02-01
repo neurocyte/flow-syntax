@@ -165,6 +165,15 @@ pub fn build(b: *std.Build) void {
         const output = ts_bin_query_gen_step.addOutputFileArg("bin_queries.cbor");
         syntax_mod.addAnonymousImport("syntax_bin_queries", .{ .root_source_file = output });
     }
+
+    const test_step = b.step("test", "Test ts_bin_query_gen is executable");
+    if (use_tree_sitter) {
+        const run_gen = b.addRunArtifact(ts_bin_query_gen);
+
+        // The actual cbor file doesn't matter.
+        _ = run_gen.addOutputFileArg("dummy.cbor");
+        test_step.dependOn(&run_gen.step);
+    }
 }
 
 fn ts_queryfile(b: *std.Build, dep: *std.Build.Dependency, bin_gen: *std.Build.Step.Compile, comptime sub_path: []const u8) void {
