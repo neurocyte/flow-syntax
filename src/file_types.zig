@@ -400,6 +400,19 @@ pub const nu = .{
     .injections = "tree-sitter-nu/queries/nu/injections.scm",
 };
 
+pub const objc = .{
+    .description = "Objective-C",
+    .color = 0xE95325,
+    .icon = "",
+    .extensions = .{ "m", "objc" },
+    .comment = "//",
+    .highlights_list = .{
+        "tree-sitter-c/queries/highlights.scm",
+        "tree-sitter-objc/queries/highlights.scm",
+    },
+    .injections = "tree-sitter-objc/queries/injections.scm",
+};
+
 pub const ocaml = .{
     .description = "OCaml",
     .color = 0xF18803,
