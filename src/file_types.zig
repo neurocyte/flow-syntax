@@ -17,7 +17,7 @@ pub const astro = .{
 pub const awk = .{
     .description = "Awk",
     .icon = "",
-    .extensions = .{"awk", "gawk"},
+    .extensions = .{ "awk", "gawk" },
     .comment = "#",
 };
 
@@ -131,7 +131,7 @@ pub const elm = .{
     .description = "Elm",
     .color = 0x0e76ad,
     .icon = "",
-    .extensions = .{ "elm" },
+    .extensions = .{"elm"},
     .comment = "--",
     .injections = "tree-sitter-elm/queries/injections.scm",
 };
@@ -325,7 +325,7 @@ pub const markdown = .{
     .description = "Markdown",
     .color = 0x000000,
     .icon = "󰍔",
-    .extensions = .{"md", "smd"},
+    .extensions = .{ "md", "smd" },
     .comment = "<!--",
     .highlights = "tree-sitter-markdown/tree-sitter-markdown/queries/highlights.scm",
     .injections = "tree-sitter-markdown/tree-sitter-markdown/queries/injections.scm",
@@ -435,7 +435,7 @@ pub const perl = .{
     .description = "Perl",
     .color = 0x005c81,
     .icon = "",
-    .extensions = .{"pl", "pm", "t"},
+    .extensions = .{ "pl", "pm", "t" },
     .comment = "#",
     .injections = "tree-sitter-perl/queries/injections.scm",
 };

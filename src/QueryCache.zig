@@ -190,6 +190,6 @@ fn deserialize_query(query_bin: []const u8, language: ?*const treez.Language, al
     var ts_query_out, const arena = try tss.fromCbor(query_bin, allocator);
     ts_query_out.language = @intFromPtr(language);
 
-    const query_out: *Query = @alignCast(@ptrCast(ts_query_out));
+    const query_out: *Query = @ptrCast(@alignCast(ts_query_out));
     return .{ query_out, arena };
 }
