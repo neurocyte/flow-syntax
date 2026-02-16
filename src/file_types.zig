@@ -7,6 +7,15 @@ pub const agda = .{
     .comment = "--",
 };
 
+pub const @"asm" = .{
+    .description = "Assembly (asm)",
+    .icon = "",
+    .extensions = .{ "s", "asm", "assembly" },
+    .comment = "#",
+    .highlights = "tree-sitter-asm/queries/asm/highlights.scm",
+    .injections = "tree-sitter-asm/queries/asm/injections.scm",
+};
+
 pub const astro = .{
     .description = "Astro",
     .icon = "",
@@ -342,8 +351,9 @@ pub const @"markdown-inline" = .{
 };
 
 pub const nasm = .{
-    .description = "Assembly Language (nasm)",
-    .extensions = .{ "asm", "nasm" },
+    .description = "Assembly (nasm)",
+    .icon = "",
+    .extensions = .{ "nasm" },
     .comment = "#",
     .injections = "tree-sitter-nasm/queries/injections.scm",
 };
