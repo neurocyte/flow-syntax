@@ -2,6 +2,7 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) void {
     const use_tree_sitter = b.option(bool, "use_tree_sitter", "Enable tree-sitter (default: yes)") orelse true;
+    const use_llvm = b.option(bool, "use_llvm", "Enable llvm backend (default: none)");
     const options = b.addOptions();
     options.addOption(bool, "use_tree_sitter", use_tree_sitter);
     const options_mod = options.createModule();
@@ -29,6 +30,10 @@ pub fn build(b: *std.Build) void {
             .optimize = .Debug,
         }),
     });
+    if (use_llvm) |value| {
+        ts_bin_query_gen.use_llvm = value;
+        ts_bin_query_gen.use_lld = value;
+    }
     ts_bin_query_gen.linkLibC();
     ts_bin_query_gen.root_module.addImport("cbor", cbor_dep.module("cbor"));
     ts_bin_query_gen.root_module.addImport("treez", tree_sitter_host_dep.module("treez"));
