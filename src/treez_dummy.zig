@@ -64,6 +64,7 @@ pub const Query = struct {
         pub fn destroy(_: *@This()) void {}
 
         pub const Match = struct {
+            pattern_index: u16 = 0,
             pub fn captures(_: *@This()) []Capture {
                 return &[_]Capture{};
             }
