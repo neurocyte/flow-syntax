@@ -353,7 +353,7 @@ pub const @"markdown-inline" = .{
 pub const nasm = .{
     .description = "Assembly (nasm)",
     .icon = "",
-    .extensions = .{ "nasm" },
+    .extensions = .{"nasm"},
     .comment = "#",
     .injections = "tree-sitter-nasm/queries/injections.scm",
 };
