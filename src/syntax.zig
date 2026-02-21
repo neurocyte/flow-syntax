@@ -28,15 +28,19 @@ errors_query: *Query,
 injections: ?*Query,
 tree: ?*treez.Tree = null,
 injection_list: std.ArrayListUnmanaged(Injection) = .{},
+content: ?[]u8 = null,
 
 pub const Injection = struct {
     lang_name: []const u8,
+    file_type: FileType,
     start_point: Point,
     end_row: u32,
-    syntax: *Self,
+    start_byte: u32,
+    end_byte: u32,
+    syntax: ?*Self = null,
 
     fn deinit(self: *Injection, allocator: std.mem.Allocator) void {
-        self.syntax.destroy();
+        if (self.syntax) |syn| syn.destroy();
         allocator.free(self.lang_name);
     }
 };
@@ -78,6 +82,7 @@ pub fn create_guess_file_type_static(allocator: std.mem.Allocator, content: []co
 pub fn destroy(self: *Self) void {
     self.clear_injections();
     self.injection_list.deinit(self.allocator);
+    if (self.content) |c| self.allocator.free(c);
     if (self.tree) |tree| tree.destroy();
     self.query_cache.release(self.query, .highlights);
     self.query_cache.release(self.errors_query, .highlights);
@@ -88,6 +93,8 @@ pub fn destroy(self: *Self) void {
 
 pub fn reset(self: *Self) void {
     self.clear_injections();
+    if (self.content) |c| self.allocator.free(c);
+    self.content = null;
     if (self.tree) |tree| {
         tree.destroy();
         self.tree = null;
@@ -101,8 +108,12 @@ fn clear_injections(self: *Self) void {
 
 pub fn refresh_full(self: *Self, content: []const u8) !void {
     self.clear_injections();
+    if (self.content) |c| self.allocator.free(c);
+    self.content = null;
     if (self.tree) |tree| tree.destroy();
     self.tree = try self.parser.parseString(null, content);
+    const content_copy = try self.allocator.dupe(u8, content);
+    self.content = content_copy;
     try self.refresh_injections(content);
 }
 
@@ -167,6 +178,10 @@ pub fn refresh_from_string(self: *Self, content: [:0]const u8) !void {
         .encoding = .utf_8,
     };
     self.tree = try self.parser.parse(old_tree, input);
+    if (self.content) |c| self.allocator.free(c);
+    self.content = null;
+    const content_copy = try self.allocator.dupe(u8, content);
+    self.content = content_copy;
     try self.refresh_injections(content);
 }
 
@@ -195,8 +210,6 @@ pub fn refresh_injections(self: *Self, content: []const u8) !void {
 
         const crange = content_range orelse continue;
 
-        // Determine language name: dynamic @injection.language capture takes priority,
-        // then fall back to a static #set! injection.language predicate.
         const lang_name: []const u8 = if (lang_range) |lr|
             extract_node_text(content, lr) orelse continue
         else
@@ -211,21 +224,17 @@ pub fn refresh_injections(self: *Self, content: []const u8) !void {
         const start_byte = crange.start_byte;
         const end_byte = crange.end_byte;
         if (start_byte >= end_byte or end_byte > content.len) continue;
-        const child_content = content[start_byte..end_byte];
-
-        const child = try Self.create(file_type, self.allocator, self.query_cache);
-        errdefer child.destroy();
-        if (child.tree) |t| t.destroy();
-        child.tree = try child.parser.parseString(null, child_content);
 
         const lang_name_owned = try self.allocator.dupe(u8, lang_name);
         errdefer self.allocator.free(lang_name_owned);
 
         try self.injection_list.append(self.allocator, .{
             .lang_name = lang_name_owned,
+            .file_type = file_type,
             .start_point = crange.start_point,
             .end_row = crange.end_point.row,
-            .syntax = child,
+            .start_byte = start_byte,
+            .end_byte = end_byte,
         });
     }
 }
@@ -350,14 +359,25 @@ fn CallBack(comptime T: type) type {
     return fn (ctx: T, sel: Range, scope: []const u8, id: u32, capture_idx: usize, node: *const Node) error{Stop}!void;
 }
 
-pub fn render(self: *const Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), range: ?Range) !void {
+pub fn render(self: *Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), range: ?Range) !void {
     try self.render_highlights_only(ctx, cb, range);
 
+    const content = self.content orelse return;
     for (self.injection_list.items) |*inj| {
         if (range) |r| {
             if (inj.end_row < r.start_point.row) continue;
             if (inj.start_point.row > r.end_point.row) continue;
         }
+
+        if (inj.syntax == null) {
+            const child_content = content[inj.start_byte..inj.end_byte];
+            const child = try Self.create(inj.file_type, self.allocator, self.query_cache);
+            errdefer child.destroy();
+            if (child.tree) |t| t.destroy();
+            child.tree = try child.parser.parseString(null, child_content);
+            inj.syntax = child;
+        }
+        const child_syn = inj.syntax.?;
 
         const child_range: ?Range = if (range) |r| blk: {
             const child_start_row: u32 = if (r.start_point.row > inj.start_point.row)
@@ -373,8 +393,7 @@ pub fn render(self: *const Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx
             };
         } else null;
 
-        // Wrap the context so we can translate local ranges to absolute
-        // document coordinates before forwarding to the callback
+        // Wrap the context to translate local ranges to document coordinates
         const InjCtx = struct {
             parent_ctx: @TypeOf(ctx),
             inj: *const Injection,
@@ -389,12 +408,10 @@ pub fn render(self: *const Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx
             ) error{Stop}!void {
                 const start_row = child_sel.start_point.row + self_.inj.start_point.row;
                 const end_row = child_sel.end_point.row + self_.inj.start_point.row;
-                // Column offset only applies on the very first line of the injection
                 const start_col = child_sel.start_point.column +
                     if (child_sel.start_point.row == 0) self_.inj.start_point.column else 0;
                 const end_col = child_sel.end_point.column +
                     if (child_sel.end_point.row == 0) self_.inj.start_point.column else 0;
-
                 const doc_range: Range = .{
                     .start_point = .{ .row = start_row, .column = start_col },
                     .end_point = .{ .row = end_row, .column = end_col },
@@ -406,7 +423,7 @@ pub fn render(self: *const Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx
         };
 
         var inj_ctx: InjCtx = .{ .parent_ctx = ctx, .inj = inj };
-        try inj.syntax.render_highlights_only(&inj_ctx, InjCtx.translated_cb, child_range);
+        try child_syn.render_highlights_only(&inj_ctx, InjCtx.translated_cb, child_range);
     }
 }
 
