@@ -263,6 +263,14 @@ pub const javascript = .{
     .injections = "tree-sitter-javascript/queries/injections.scm",
 };
 
+pub const jsdoc = .{
+    .description = "JSDoc",
+    .color = 0xf0db4f,
+    .icon = "󰌞",
+    .extensions = .{},
+    .comment = "//",
+};
+
 pub const json = .{
     .description = "JSON",
     .extensions = .{"json"},
