@@ -617,6 +617,11 @@ pub const typescript = .{
     .icon = "󰛦",
     .extensions = .{ "ts", "tsx" },
     .comment = "//",
+    .highlights_list = .{
+        "tree-sitter-javascript/queries/highlights.scm",
+        "tree-sitter-typescript/queries/highlights.scm",
+    },
+    .injections = "tree-sitter-javascript/queries/injections.scm",
 };
 
 pub const typst = .{
