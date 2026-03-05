@@ -111,6 +111,16 @@ pub const css = .{
     .comment = "//",
 };
 
+pub const d = .{
+    .description = "D",
+    .color = 0xF54927,
+    .icon = "",
+    .extensions = .{ "d", "di" },
+    .comment = "//",
+    .highlights = "queries/d/highlights.scm",
+    .injections = "queries/d/injections.scm",
+};
+
 pub const diff = .{
     .description = "Diff",
     .extensions = .{ "diff", "patch", "rej" },
