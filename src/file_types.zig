@@ -105,6 +105,18 @@ pub const css = .{
     .comment = "//",
 };
 
+pub const d = .{
+    .description = "D",
+    .color = 0xF54927,
+    .icon = "",
+    .extensions = .{ "d", "di" },
+    .comment = "//",
+    .highlights_list = .{
+        "tree-sitter-d/queries/highlights.scm",
+    },
+    .injections = "tree-sitter-d/queries/injections.scm",
+};
+
 pub const diff = .{
     .description = "Diff",
     .extensions = .{ "diff", "patch", "rej" },
