@@ -111,9 +111,7 @@ pub const d = .{
     .icon = "",
     .extensions = .{ "d", "di" },
     .comment = "//",
-    .highlights_list = .{
-        "tree-sitter-d/queries/highlights.scm",
-    },
+    .highlights = "tree-sitter-d/queries/highlights.scm",
     .injections = "tree-sitter-d/queries/injections.scm",
 };
 
