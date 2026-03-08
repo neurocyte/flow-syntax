@@ -111,8 +111,8 @@ pub const d = .{
     .icon = "",
     .extensions = .{ "d", "di" },
     .comment = "//",
-    .highlights = "tree-sitter-d/queries/highlights.scm",
-    .injections = "tree-sitter-d/queries/injections.scm",
+    .highlights = "queries/d/highlights.scm",
+    .injections = "queries/d/injections.scm",
 };
 
 pub const diff = .{
