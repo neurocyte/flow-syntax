@@ -54,6 +54,12 @@ pub const @"c-sharp" = .{
     .comment = "//",
 };
 
+pub const comment = .{
+    .description = "Comments",
+    .icon = "#",
+    .extensions = .{},
+};
+
 pub const conf = .{
     .description = "Config",
     .color = 0x000000,
