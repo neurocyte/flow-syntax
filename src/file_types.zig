@@ -59,7 +59,7 @@ pub const comment = .{
     .icon = "#",
     .extensions = .{},
     .comment = "#",
-    .highlights = "nvim-treesitter/queries/comment/highlights.scm",
+    .highlights = "nvim-treesitter/runtime/queries/comment/highlights.scm",
 };
 
 pub const conf = .{
@@ -232,8 +232,8 @@ pub const hcl = .{
     .icon = "",
     .extensions = .{ "hcl", "tf", "tfvars" },
     .comment = "#",
-    .highlights = "nvim-treesitter/queries/hcl/highlights.scm",
-    .injections = "nvim-treesitter/queries/hcl/injections.scm",
+    .highlights = "nvim-treesitter/runtime/queries/hcl/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/hcl/injections.scm",
 };
 
 pub const html = .{
@@ -261,7 +261,8 @@ pub const hurl = .{
     .icon = "",
     .extensions = .{"hurl"},
     .comment = "#",
-    .injections = "tree-sitter-hurl/queries/injections.scm",
+    .highlights = "nvim-treesitter/runtime/queries/hurl/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/hurl/injections.scm",
 };
 
 pub const java = .{
@@ -317,8 +318,8 @@ pub const latex = .{
     .icon = "",
     .extensions = .{ "tex", "aux", "sty", "cls" },
     .comment = "%",
-    .highlights = "nvim-treesitter/queries/latex/highlights.scm",
-    .injections = "nvim-treesitter/queries/latex/injections.scm",
+    .highlights = "nvim-treesitter/runtime/queries/latex/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/latex/injections.scm",
 };
 
 pub const commonlisp = .{
@@ -327,8 +328,8 @@ pub const commonlisp = .{
     .icon = "",
     .extensions = .{ "lisp", "ls", "el" },
     .comment = ";",
-    .highlights = "nvim-treesitter/queries/commonlisp/highlights.scm",
-    .injections = "nvim-treesitter/queries/commonlisp/injections.scm",
+    .highlights = "nvim-treesitter/runtime/queries/commonlisp/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/commonlisp/injections.scm",
 };
 
 pub const lua = .{
@@ -346,7 +347,6 @@ pub const mail = .{
     .icon = "󰇮",
     .extensions = .{ "eml", "mbox" },
     .comment = ">",
-    .highlights = "tree-sitter-mail/queries/mail/highlights.scm",
     .first_line_matches = FirstLineMatch{ .prefix = "From" },
 };
 
@@ -553,20 +553,31 @@ pub const regex = .{
     .comment = "#",
 };
 
+pub const rpmbash = .{
+    .description = "RPM spec (bash)",
+    .color = 0xff0000,
+    .icon = "󱄛",
+    .extensions = .{},
+    .comment = "#",
+    .highlights = "tree-sitter-rpmspec/rpmbash/queries/highlights.scm",
+};
+
 pub const rpmspec = .{
     .description = "RPM spec",
     .color = 0xff0000,
     .icon = "󱄛",
     .extensions = .{"spec"},
     .comment = "#",
+    .highlights = "tree-sitter-rpmspec/rpmspec/queries/highlights.scm",
+    .injections = "tree-sitter-rpmspec/rpmspec/queries/injections.scm",
 };
 
 pub const rst = .{
     .description = "reStructuredText",
     .extensions = .{"rst"},
     .comment = "..",
-    .highlights = "nvim-treesitter/queries/rst/highlights.scm",
-    .injections = "nvim-treesitter/queries/rst/injections.scm",
+    .highlights = "nvim-treesitter/runtime/queries/rst/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/rst/injections.scm",
 };
 
 pub const ruby = .{
@@ -586,9 +597,17 @@ pub const rust = .{
     .injections = "tree-sitter-rust/queries/injections.scm",
 };
 
+pub const query = .{
+    .description = "Query (tree-sitter)",
+    .extensions = .{"scm"},
+    .comment = ";",
+    .highlights = "tree-sitter-query/queries/query/highlights.scm",
+    .injections = "tree-sitter-query/queries/query/injections.scm",
+};
+
 pub const scheme = .{
     .description = "Scheme",
-    .extensions = .{ "scm", "ss" },
+    .extensions = .{ "scm", "ss", "scheme" },
     .comment = ";",
 };
 
@@ -613,12 +632,12 @@ pub const swift = .{
     .comment = "//",
 };
 
-pub const verilog = .{
+pub const systemverilog = .{
     .description = "SystemVerilog",
     .extensions = .{ "sv", "svh", "v", "vh" },
     .comment = "//",
-    .highlights = "nvim-treesitter/queries/verilog/highlights.scm",
-    .injections = "nvim-treesitter/queries/verilog/injections.scm",
+    .highlights = "nvim-treesitter/runtime/queries/systemverilog/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/systemverilog/injections.scm",
 };
 
 pub const toml = .{
