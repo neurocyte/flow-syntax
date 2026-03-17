@@ -55,9 +55,10 @@ pub const @"c-sharp" = .{
 };
 
 pub const comment = .{
-    .description = "Comments",
+    .description = "Comment tags",
     .icon = "#",
     .extensions = .{},
+    .highlights = "nvim-treesitter/queries/comment/highlights.scm",
 };
 
 pub const conf = .{
