@@ -50,9 +50,10 @@ pub fn main() anyerror!void {
         try cbor.writeValue(writer, file_type.name);
         try cbor.writeMapHeader(writer, if (file_type.injections) |_| 3 else 2);
 
-        const highlights_in = treez.Query.create(lang, file_type.highlights) catch |e| switch (e) {
+        var error_offset: u32 = 0;
+        const highlights_in = treez.Query.create(lang, file_type.highlights, &error_offset) catch |e| switch (e) {
             error.InvalidLanguage => std.debug.panic("tree-sitter invalid language error: {s}", .{file_type.name}),
-            else => |e_| return e_,
+            else => |e_| std.debug.panic("tree-sitter failed to read highlights: {s} -> {t} at pos {d}", .{ file_type.name, e_, error_offset }),
         };
         const ts_highlights_in: *tss.TSQuery = @ptrCast(@alignCast(highlights_in));
 
@@ -64,7 +65,7 @@ pub fn main() anyerror!void {
         if (verbose)
             std.log.info("file_type {s} highlights {d} bytes", .{ file_type.name, highlights_cb.len });
 
-        const errors_in = try treez.Query.create(lang, "(ERROR) @error");
+        const errors_in = try treez.Query.create(lang, "(ERROR) @error", &error_offset);
         const ts_errors_in: *tss.TSQuery = @ptrCast(@alignCast(errors_in));
 
         const errors_cb = try tss.toCbor(ts_errors_in, allocator);
@@ -76,7 +77,10 @@ pub fn main() anyerror!void {
             std.log.info("file_type {s} errors {d} bytes", .{ file_type.name, errors_cb.len });
 
         if (file_type.injections) |injections| {
-            const injections_in = try treez.Query.create(lang, injections);
+            const injections_in = treez.Query.create(lang, injections, &error_offset) catch |e| switch (e) {
+                error.InvalidLanguage => std.debug.panic("tree-sitter invalid language error: {s}", .{file_type.name}),
+                else => |e_| std.debug.panic("tree-sitter failed to read injections: {s} -> {t} at pos {d}", .{ file_type.name, e_, error_offset }),
+            };
             const ts_injections_in: *tss.TSQuery = @ptrCast(@alignCast(injections_in));
 
             const injections_cb = try tss.toCbor(ts_injections_in, allocator);
