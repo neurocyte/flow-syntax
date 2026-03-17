@@ -120,6 +120,7 @@ pub fn build(b: *std.Build) void {
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/comment/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/commonlisp/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/latex/highlights.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/llvm/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/hcl/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/hurl/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/rst/highlights.scm");
@@ -165,6 +166,7 @@ pub fn build(b: *std.Build) void {
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/systemverilog/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/commonlisp/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/latex/injections.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/llvm/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/hcl/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/hurl/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/rst/injections.scm");

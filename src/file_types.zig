@@ -332,6 +332,15 @@ pub const commonlisp = .{
     .injections = "nvim-treesitter/runtime/queries/commonlisp/injections.scm",
 };
 
+pub const llvm = .{
+    .description = "Llvm",
+    .icon = "",
+    .extensions = .{ "llvm", "ll" },
+    .comment = ";",
+    .highlights = "nvim-treesitter/runtime/queries/llvm/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/llvm/injections.scm",
+};
+
 pub const lua = .{
     .description = "Lua",
     .color = 0x02027d,
