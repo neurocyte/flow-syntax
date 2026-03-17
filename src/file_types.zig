@@ -58,6 +58,7 @@ pub const comment = .{
     .description = "Comment tags",
     .icon = "#",
     .extensions = .{},
+    .comment = "#",
     .highlights = "nvim-treesitter/queries/comment/highlights.scm",
 };
 
