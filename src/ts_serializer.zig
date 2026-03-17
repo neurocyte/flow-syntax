@@ -171,11 +171,12 @@ pub const QueryStep = extern struct {
     // is_last_child: u1,
     // is_pass_through: u1,
     // is_dead_end: u1,
-    // alternative_is_immediate: u1,
+    // is_inside_alternation: u1,
     // contains_captures: u1,
     // root_pattern_guaranteed: u1,
     flags8: u8,
     // parent_pattern_guaranteed: u1,
+    // is_missing: u1,
     flags16: u8,
 
     pub fn cborEncode(self: *const @This(), writer: *Io.Writer) !void {
