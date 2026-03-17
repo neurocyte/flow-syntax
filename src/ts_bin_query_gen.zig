@@ -33,10 +33,27 @@ pub fn main() anyerror!void {
     for (file_types) |file_type| {
         const lang = file_type.lang_fn() orelse std.debug.panic("tree-sitter parser function failed for language: {s}", .{file_type.name});
 
+        const lang_abi = lang.getLanguageAbiVersion();
+        if (lang_abi < treez.TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION)
+            std.debug.panic("tree-sitter language '{s}' API is too old: {d} (our MIN API:{d})", .{
+                lang.getLanguageName(),
+                lang_abi,
+                treez.TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION,
+            });
+        if (lang_abi > treez.TREE_SITTER_LANGUAGE_VERSION)
+            std.debug.panic("tree-sitter language '{s}' API is too new: {d} (our API:{d})", .{
+                lang.getLanguageName(),
+                lang_abi,
+                treez.TREE_SITTER_LANGUAGE_VERSION,
+            });
+
         try cbor.writeValue(writer, file_type.name);
         try cbor.writeMapHeader(writer, if (file_type.injections) |_| 3 else 2);
 
-        const highlights_in = try treez.Query.create(lang, file_type.highlights);
+        const highlights_in = treez.Query.create(lang, file_type.highlights) catch |e| switch (e) {
+            error.InvalidLanguage => std.debug.panic("tree-sitter invalid language error: {s}", .{file_type.name}),
+            else => |e_| return e_,
+        };
         const ts_highlights_in: *tss.TSQuery = @ptrCast(@alignCast(highlights_in));
 
         const highlights_cb = try tss.toCbor(ts_highlights_in, allocator);
