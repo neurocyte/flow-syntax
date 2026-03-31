@@ -686,6 +686,16 @@ pub const uxntal = .{
     .comment = "(",
 };
 
+pub const v = .{
+    .description = "V",
+    .color = 0x5d86be,
+    .icon = "V",
+    .extensions = .{ "v", "vsh", "v.mod" },
+    .comment = "//",
+    .highlights = "nvim-treesitter/runtime/queries/v/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/v/injections.scm",
+};
+
 pub const vim = .{
     .description = "Vimscript",
     .color = 0x007f00,
