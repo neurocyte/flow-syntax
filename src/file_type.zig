@@ -115,6 +115,7 @@ fn load_file_types(comptime Namespace: type) []const ListEntry {
             }
             var construct_types: [count]ListEntry = undefined;
             var i = 0;
+            @setEvalBranchQuota(2000);
             for (info.decls) |decl| {
                 const lang = decl.name;
                 const args = @field(Namespace, lang);
