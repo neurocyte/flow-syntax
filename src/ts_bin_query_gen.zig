@@ -6,24 +6,24 @@ pub const tss = @import("ts_serializer.zig");
 
 const verbose = false;
 
-pub fn main() anyerror!void {
+pub fn main(init: std.process.Init) anyerror!void {
+    const io = init.io;
     const allocator = std.heap.c_allocator;
-    const args = try std.process.argsAlloc(allocator);
 
     var opt_output_file_path: ?[]const u8 = null;
 
-    var i: usize = 1;
-    while (i < args.len) : (i += 1) {
-        const arg = args[i];
+    var args = init.minimal.args.iterate();
+    _ = args.next();
+    while (args.next()) |arg| {
         if (opt_output_file_path != null) fatal("duplicated {s} argument", .{arg});
-        opt_output_file_path = args[i];
+        opt_output_file_path = arg;
     }
 
     const output_file_path = opt_output_file_path orelse fatal("missing output file", .{});
-    var output_file = std.fs.cwd().createFile(output_file_path, .{}) catch |err| {
+    var output_file = std.Io.Dir.cwd().createFile(io, output_file_path, .{}) catch |err| {
         fatal("unable to open '{s}': {s}", .{ output_file_path, @errorName(err) });
     };
-    defer output_file.close();
+    defer output_file.close(io);
 
     var output = std.Io.Writer.Allocating.init(allocator);
     const writer = &output.writer;
@@ -93,7 +93,7 @@ pub fn main() anyerror!void {
         }
     }
 
-    try output_file.writeAll(output.written());
+    try output_file.writeStreamingAll(io, output.written());
     if (verbose)
         std.log.info("file_types total {d} bytes", .{output.written().len});
 }

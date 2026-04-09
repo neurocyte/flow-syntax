@@ -12,15 +12,16 @@ pub const tss = @import("ts_serializer.zig");
 pub const FileType = @import("file_type.zig");
 const Query = treez.Query;
 
+io: std.Io,
 allocator: std.mem.Allocator,
-mutex: ?std.Thread.Mutex,
+mutex: ?std.Io.Mutex,
 highlights: std.StringHashMapUnmanaged(*CacheEntry) = .{},
 injections: std.StringHashMapUnmanaged(*CacheEntry) = .{},
 errors: std.StringHashMapUnmanaged(*CacheEntry) = .{},
 ref_count: usize = 1,
 
 const CacheEntry = struct {
-    mutex: ?std.Thread.Mutex,
+    mutex: ?std.Io.Mutex,
     query: ?*Query,
     query_arena: ?*std.heap.ArenaAllocator,
     query_type: QueryType,
@@ -60,12 +61,13 @@ const CacheError = error{
 
 pub const Error = CacheError || QueryParseError || QuerySerializeError;
 
-pub fn create(allocator: std.mem.Allocator, opts: struct { lock: bool = false }) !*Self {
+pub fn create(io: std.Io, allocator: std.mem.Allocator, opts: struct { lock: bool = false }) !*Self {
     const self = try allocator.create(Self);
     errdefer allocator.destroy(self);
     self.* = .{
+        .io = io,
         .allocator = allocator,
-        .mutex = if (opts.lock) .{} else null,
+        .mutex = if (opts.lock) .init else null,
     };
     return self;
 }
@@ -81,8 +83,8 @@ fn add_ref_locked(self: *Self) void {
 
 fn release_ref_unlocked_and_maybe_destroy(self: *Self) void {
     {
-        if (self.mutex) |*mtx| mtx.lock();
-        defer if (self.mutex) |*mtx| mtx.unlock();
+        if (self.mutex) |*mtx| mtx.lockUncancelable(self.io);
+        defer if (self.mutex) |*mtx| mtx.unlock(self.io);
         self.ref_count -= 1;
         if (self.ref_count > 0) return;
     }
@@ -104,8 +106,8 @@ fn release_cache_entry_hash_map(allocator: std.mem.Allocator, hash_map: *std.Str
 }
 
 fn get_cache_entry(self: *Self, file_type: FileType, comptime query_type: QueryType) CacheError!*CacheEntry {
-    if (self.mutex) |*mtx| mtx.lock();
-    defer if (self.mutex) |*mtx| mtx.unlock();
+    if (self.mutex) |*mtx| mtx.lockUncancelable(self.io);
+    defer if (self.mutex) |*mtx| mtx.unlock(self.io);
 
     const hash = switch (query_type) {
         .highlights => &self.highlights,
@@ -120,7 +122,7 @@ fn get_cache_entry(self: *Self, file_type: FileType, comptime query_type: QueryT
         q.* = .{
             .query = null,
             .query_arena = null,
-            .mutex = if (self.mutex) |_| .{} else null,
+            .mutex = if (self.mutex) |_| .init else null,
             .lang_fn = file_type.lang_fn,
             .file_type_name = file_type.name,
             .query_type = query_type,
@@ -132,8 +134,8 @@ fn get_cache_entry(self: *Self, file_type: FileType, comptime query_type: QueryT
 }
 
 fn get_cached_query(self: *Self, entry: *CacheEntry) Error!?*Query {
-    if (entry.mutex) |*mtx| mtx.lock();
-    defer if (entry.mutex) |*mtx| mtx.unlock();
+    if (entry.mutex) |*mtx| mtx.lockUncancelable(self.io);
+    defer if (entry.mutex) |*mtx| mtx.unlock(self.io);
 
     return if (entry.query) |query| query else blk: {
         const lang = entry.lang_fn() orelse std.debug.panic("tree-sitter parser function failed for language: {s}", .{entry.file_type_name});
@@ -173,7 +175,7 @@ pub fn get(self: *Self, file_type: FileType, comptime query_type: QueryType) Err
     const query = try self.get_cached_query(try self.get_cache_entry(file_type, query_type));
     self.add_ref_locked();
     return switch (@typeInfo(ReturnType(query_type))) {
-        .optional => |_| query,
+        .optional => query,
         else => query.?,
     };
 }

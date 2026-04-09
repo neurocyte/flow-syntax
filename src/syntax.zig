@@ -27,7 +27,7 @@ query: *Query,
 errors_query: *Query,
 injections: ?*Query,
 tree: ?*treez.Tree = null,
-injection_list: std.ArrayListUnmanaged(Injection) = .{},
+injection_list: std.ArrayList(Injection) = .empty,
 content: ?[]u8 = null,
 
 pub const Injection = struct {
