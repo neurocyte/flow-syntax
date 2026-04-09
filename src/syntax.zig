@@ -488,5 +488,5 @@ test "simple build and link test" {
     const query_cache = try QueryCache.create(std.testing.allocator, .{});
     defer query_cache.deinit();
     const syntax = try create(zig_file_type, std.testing.allocator, query_cache);
-    _ = syntax;
+    syntax.destroy();
 }
