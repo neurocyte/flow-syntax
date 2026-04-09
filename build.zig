@@ -34,7 +34,7 @@ pub fn build(b: *std.Build) void {
         ts_bin_query_gen.use_llvm = value;
         ts_bin_query_gen.use_lld = value;
     }
-    ts_bin_query_gen.linkLibC();
+    ts_bin_query_gen.root_module.link_libc = true;
     ts_bin_query_gen.root_module.addImport("cbor", cbor_dep.module("cbor"));
     ts_bin_query_gen.root_module.addImport("treez", tree_sitter_host_dep.module("treez"));
     ts_bin_query_gen.root_module.addImport("build_options", options_mod);
