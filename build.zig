@@ -182,11 +182,29 @@ pub fn build(b: *std.Build) void {
         },
     });
 
+    const tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/syntax.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "build_options", .module = options_mod },
+                .{ .name = "cbor", .module = cbor_dep.module("cbor") },
+                .{ .name = "treez", .module = tree_sitter_dep.module("treez") },
+            },
+        }),
+    });
+
     if (use_tree_sitter) {
         const ts_bin_query_gen_step = b.addRunArtifact(ts_bin_query_gen);
         const output = ts_bin_query_gen_step.addOutputFileArg("bin_queries.cbor");
         syntax_mod.addAnonymousImport("syntax_bin_queries", .{ .root_source_file = output });
+        tests.root_module.addAnonymousImport("syntax_bin_queries", .{ .root_source_file = output });
     }
+
+    const test_run_cmd = b.addRunArtifact(tests);
+    const test_step = b.step("test", "Run unit tests");
+    test_step.dependOn(&test_run_cmd.step);
 }
 
 fn ts_queryfile(b: *std.Build, dep: *std.Build.Dependency, bin_gen: *std.Build.Step.Compile, comptime sub_path: []const u8) void {

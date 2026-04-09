@@ -482,3 +482,11 @@ pub fn count_error_nodes(self: *const Self) usize {
     };
     return error_count;
 }
+
+test "simple build and link test" {
+    const zig_file_type = @import("file_type.zig").get_by_name_static("zig") orelse return error.TestFailed;
+    const query_cache = try QueryCache.create(std.testing.allocator, .{});
+    defer query_cache.deinit();
+    const syntax = try create(zig_file_type, std.testing.allocator, query_cache);
+    _ = syntax;
+}
