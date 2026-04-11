@@ -484,15 +484,16 @@ pub fn count_error_nodes(self: *const Self) usize {
 }
 
 test "simple build and link test" {
+    const io = std.testing.io;
     const gpa = std.testing.allocator;
 
     const zig_file_type = @import("file_type.zig").get_by_name_static("zig") orelse return error.TestFailed;
-    const query_cache = try QueryCache.create(gpa, .{});
+    const query_cache = try QueryCache.create(io, gpa, .{});
     defer query_cache.deinit();
     const syntax = try create(zig_file_type, gpa, query_cache);
     defer syntax.destroy();
 
-    const content = try std.fs.cwd().readFileAlloc(gpa, "src/syntax.zig", std.math.maxInt(usize));
+    const content = try std.Io.Dir.readFileAlloc(.cwd(), io, "src/syntax.zig", gpa, .unlimited);
     defer gpa.free(content);
     try syntax.refresh_full(content);
 
