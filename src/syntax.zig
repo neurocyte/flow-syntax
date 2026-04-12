@@ -49,7 +49,7 @@ pub fn create(file_type: FileType, allocator: std.mem.Allocator, query_cache: *Q
     const query = try query_cache.get(file_type, .highlights);
     errdefer query_cache.release(query, .highlights);
     const errors_query = try query_cache.get(file_type, .errors);
-    errdefer query_cache.release(errors_query, .highlights);
+    errdefer query_cache.release(errors_query, .errors);
     const injections = try query_cache.get(file_type, .injections);
     errdefer if (injections) |injections_| query_cache.release(injections_, .injections);
     const self = try allocator.create(Self);
@@ -85,7 +85,7 @@ pub fn destroy(self: *Self) void {
     if (self.content) |c| self.allocator.free(c);
     if (self.tree) |tree| tree.destroy();
     self.query_cache.release(self.query, .highlights);
-    self.query_cache.release(self.errors_query, .highlights);
+    self.query_cache.release(self.errors_query, .errors);
     if (self.injections) |injections| self.query_cache.release(injections, .injections);
     self.parser.destroy();
     self.allocator.destroy(self);
@@ -484,9 +484,19 @@ pub fn count_error_nodes(self: *const Self) usize {
 }
 
 test "simple build and link test" {
+    const gpa = std.testing.allocator;
+
     const zig_file_type = @import("file_type.zig").get_by_name_static("zig") orelse return error.TestFailed;
-    const query_cache = try QueryCache.create(std.testing.io, std.testing.allocator, .{});
+    const query_cache = try QueryCache.create(gpa, .{});
     defer query_cache.deinit();
-    const syntax = try create(zig_file_type, std.testing.allocator, query_cache);
-    syntax.destroy();
+    const syntax = try create(zig_file_type, gpa, query_cache);
+    defer syntax.destroy();
+
+    const content = try std.fs.cwd().readFileAlloc(gpa, "src/syntax.zig", std.math.maxInt(usize));
+    defer gpa.free(content);
+    try syntax.refresh_full(content);
+
+    try syntax.render({}, struct {
+        fn cb(_: void, _: Range, _: []const u8, _: u32, _: usize, _: *const Node) error{Stop}!void {}
+    }.cb, null);
 }

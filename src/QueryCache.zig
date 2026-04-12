@@ -173,7 +173,7 @@ fn ReturnType(comptime query_type: QueryType) type {
 
 pub fn get(self: *Self, file_type: FileType, comptime query_type: QueryType) Error!ReturnType(query_type) {
     const query = try self.get_cached_query(try self.get_cache_entry(file_type, query_type));
-    self.add_ref_locked();
+    if (query != null) self.add_ref_locked();
     return switch (@typeInfo(ReturnType(query_type))) {
         .optional => query,
         else => query.?,
