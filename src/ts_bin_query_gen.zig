@@ -12,7 +12,8 @@ pub fn main(init: std.process.Init) anyerror!void {
 
     var opt_output_file_path: ?[]const u8 = null;
 
-    var args = init.minimal.args.iterate();
+    var args = try init.minimal.args.iterateAllocator(allocator);
+    defer args.deinit();
     _ = args.next();
     while (args.next()) |arg| {
         if (opt_output_file_path != null) fatal("duplicated {s} argument", .{arg});
