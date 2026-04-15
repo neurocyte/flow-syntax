@@ -312,6 +312,15 @@ pub const kdl = .{
     .comment = "//",
 };
 
+pub const kotlin = .{
+    .description = "Kotlin",
+    .color = 0x664ACC,
+    .icon = "",
+    .extensions = .{"kt"},
+    .comment = "//",
+    .highlights = "tree-sitter-kotlin/queries/highlights.scm",
+};
+
 pub const latex = .{
     .description = "LaTeX",
     .color = 0x008080,

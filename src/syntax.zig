@@ -251,6 +251,7 @@ fn extract_node_text(content: []const u8, range: Range) ?[]const u8 {
 fn normalize_lang_name(name: []const u8) []const u8 {
     const aliases = .{
         .{ "js", "javascript" },
+        .{ "kt", "kotlin" },
         .{ "ts", "typescript" },
         .{ "py", "python" },
         .{ "rb", "ruby" },
