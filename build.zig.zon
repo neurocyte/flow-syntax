@@ -10,8 +10,8 @@
             .hash = "tree_sitter-0.26.7-z0LhyGSQZzENNbCzqsMPu63xwpZI1WTHcf62imt-H6YL",
         },
         .cbor = .{
-            .url = "git+https://github.com/neurocyte/cbor?ref=master#66c28df31b8e4448dac7edf063417f2234d6f3c9",
-            .hash = "cbor-1.1.0-RcQE_DZMAQBg77bTLWHEMF7QSF2lWUudUbarD9xC5yVJ",
+            .url = "git+https://github.com/neurocyte/cbor?ref=master#8f37f71439f62b513b9d52a76d6af012395ee47c",
+            .hash = "cbor-1.2.0-RcQE_NtLAQCkBF-LFNB_XsGIycs6pjhCYicxEq0QzYfe",
         },
     },
     .paths = .{
