@@ -46,6 +46,12 @@ pub const c = .{
     .comment = "//",
 };
 
+pub const @"c3" = .{
+    .description = "C3",
+    .extensions = .{"c3"},
+    .comment = "//",
+};
+
 pub const @"c-sharp" = .{
     .description = "C#",
     .color = 0x68217a,
