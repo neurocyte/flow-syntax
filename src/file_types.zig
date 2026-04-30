@@ -48,6 +48,8 @@ pub const c = .{
 
 pub const @"c3" = .{
     .description = "C3",
+    .color = 0x2d8efc,
+    .icon = "C3",
     .extensions = .{"c3"},
     .comment = "//",
 };
