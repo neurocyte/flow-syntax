@@ -46,7 +46,7 @@ pub const c = .{
     .comment = "//",
 };
 
-pub const @"c3" = .{
+pub const c3 = .{
     .description = "C3",
     .color = 0x2d8efc,
     .icon = "C3",
@@ -185,6 +185,16 @@ pub const fsharp = .{
     .icon = "",
     .extensions = .{"fs"},
     .comment = "//",
+};
+
+pub const gdscript = .{
+    .description = "GDScript",
+    .color = 0x447da9,
+    .icon = "",
+    .extensions = .{"gd"},
+    .comment = "#",
+    .highlights = "nvim-treesitter/runtime/queries/gdscript/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/gdscript/injections.scm",
 };
 
 pub const @"git-rebase" = .{
