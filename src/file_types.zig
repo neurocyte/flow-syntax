@@ -733,6 +733,22 @@ pub const vim = .{
     .injections = "tree-sitter-vim/queries/vim/injections.scm",
 };
 
+pub const vue = .{
+    .description = "Vue",
+    .color = 0x44b782,
+    .icon = "",
+    .extensions = .{"vue"},
+    .comment = "//",
+    .highlights_list = .{
+        "tree-sitter-vue/queries/html_tags/highlights.scm",
+        "tree-sitter-vue/queries/vue/highlights.scm",
+    },
+    .injections_list = .{
+        "tree-sitter-vue/queries/html_tags/injections.scm",
+        "tree-sitter-vue/queries/vue/injections.scm",
+    },
+};
+
 pub const xml = .{
     .description = "XML",
     .icon = "󰗀",

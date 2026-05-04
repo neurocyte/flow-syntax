@@ -135,6 +135,8 @@ fn load_file_types(comptime Namespace: type) []const FileType {
                         @embedFile("tree-sitter-" ++ lang ++ "/queries/highlights.scm"),
                     .injections = if (@hasField(@TypeOf(args), "injections"))
                         @embedFile(args.injections)
+                    else if (@hasField(@TypeOf(args), "injections_list"))
+                        @embedFile(args.injections_list[0]) ++ "\n" ++ @embedFile(args.injections_list[1])
                     else
                         null,
                 };
