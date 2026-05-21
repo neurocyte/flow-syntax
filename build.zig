@@ -31,10 +31,8 @@ pub fn build(b: *std.Build) void {
             .optimize = .Debug,
         }),
     });
-    if (use_llvm) |value| {
-        ts_bin_query_gen.use_llvm = value;
-        ts_bin_query_gen.use_lld = if (builtin.os.tag.isDarwin()) null else value;
-    }
+    ts_bin_query_gen.use_llvm = use_llvm;
+    ts_bin_query_gen.use_lld = if (builtin.os.tag.isDarwin()) null else use_llvm;
     ts_bin_query_gen.root_module.link_libc = true;
     ts_bin_query_gen.root_module.addImport("cbor", cbor_dep.module("cbor"));
     ts_bin_query_gen.root_module.addImport("treez", tree_sitter_host_dep.module("treez"));
@@ -203,6 +201,8 @@ pub fn build(b: *std.Build) void {
             },
         }),
     });
+    tests.use_llvm = use_llvm;
+    tests.use_lld = if (builtin.os.tag.isDarwin()) null else use_llvm;
 
     if (use_tree_sitter) {
         const ts_bin_query_gen_step = b.addRunArtifact(ts_bin_query_gen);
