@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 pub fn build(b: *std.Build) void {
     const use_tree_sitter = b.option(bool, "use_tree_sitter", "Enable tree-sitter (default: yes)") orelse true;
@@ -32,7 +33,7 @@ pub fn build(b: *std.Build) void {
     });
     if (use_llvm) |value| {
         ts_bin_query_gen.use_llvm = value;
-        ts_bin_query_gen.use_lld = value;
+        ts_bin_query_gen.use_lld = if (builtin.os.tag.isDarwin()) null else value;
     }
     ts_bin_query_gen.root_module.link_libc = true;
     ts_bin_query_gen.root_module.addImport("cbor", cbor_dep.module("cbor"));
