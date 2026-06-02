@@ -44,6 +44,7 @@ pub const c = .{
     .icon = "",
     .extensions = .{"c"},
     .comment = "//",
+    .parser = @import("file_type.zig").Parser("c"),
 };
 
 pub const c3 = .{
@@ -220,6 +221,15 @@ pub const gleam = .{
     .icon = "󰦥",
     .extensions = .{"gleam"},
     .comment = "//",
+};
+
+pub const glsl = .{
+    .description = "glsl",
+    .icon = "",
+    .extensions = .{"glsl"},
+    .comment = "//",
+    .highlights = "tree-sitter-c/queries/highlights.scm",
+    .parser = c.parser,
 };
 
 pub const go = .{
