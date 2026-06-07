@@ -109,15 +109,12 @@ fn load_file_types(comptime Namespace: type) []const ListEntry {
     comptime switch (@typeInfo(Namespace)) {
         .@"struct" => |info| {
             var count = 0;
-            for (info.decls) |_| {
-                // @compileLog(decl.name, @TypeOf(@field(Namespace, decl.name)));
-                count += 1;
-            }
+            count += info.decl_names.len;
             var construct_types: [count]ListEntry = undefined;
             var i = 0;
             @setEvalBranchQuota(2000);
-            for (info.decls) |decl| {
-                const lang = decl.name;
+            for (info.decl_names) |decl_name| {
+                const lang = decl_name;
                 const args = @field(Namespace, lang);
                 construct_types[i] = .{ lang, .{
                     .color = if (@hasField(@TypeOf(args), "color")) args.color else 0xffffff,
