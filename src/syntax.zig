@@ -400,6 +400,156 @@ pub fn AcceptAll(comptime T: type) Validator(T) {
     }.validate;
 }
 
+pub fn SimpleNonRegex(comptime T: type) Validator(T) {
+    const local = struct {
+        fn eval_simple_predicates(predicates: []const u8) cbor.Error!bool {
+            var iter = predicates;
+            var count = cbor.decodeArrayHeader(&iter) catch return true;
+            while (count > 0) : (count -= 1) {
+                var predicate: []const u8 = undefined;
+                _ = try cbor.matchValue(&iter, cbor.extract_cbor(&predicate));
+                if (!try eval_simple_predicate(predicate)) return false;
+            }
+            return true;
+        }
+
+        fn eval_simple_predicate(predicate: []const u8) cbor.Error!bool {
+            var capture: []const u8 = undefined;
+            var value: []const u8 = undefined;
+            if (try cbor.match(predicate, .{ "eq?", cbor.extract_cbor(&capture), cbor.extract_cbor(&value) }))
+                return eval_eq(capture, value, .{ .positive = true, .match_all = true });
+            if (try cbor.match(predicate, .{ "not-eq?", cbor.extract_cbor(&capture), cbor.extract_cbor(&value) }))
+                return eval_eq(capture, value, .{ .positive = false, .match_all = true });
+            if (try cbor.match(predicate, .{ "any-eq?", cbor.extract_cbor(&capture), cbor.extract_cbor(&value) }))
+                return eval_eq(capture, value, .{ .positive = true, .match_all = false });
+            if (try cbor.match(predicate, .{ "any-not-eq?", cbor.extract_cbor(&capture), cbor.extract_cbor(&value) }))
+                return eval_eq(capture, value, .{ .positive = false, .match_all = false });
+            if (try cbor.match(predicate, .{ "any-of?", cbor.extract_cbor(&capture), cbor.more }))
+                return eval_any_of(predicate, capture, true);
+            if (try cbor.match(predicate, .{ "not-any-of?", cbor.extract_cbor(&capture), cbor.more }))
+                return eval_any_of(predicate, capture, false);
+            return false;
+        }
+
+        const EqMode = struct { positive: bool, match_all: bool };
+        fn eval_eq(capture: []const u8, value: []const u8, mode: EqMode) cbor.Error!bool {
+            var value_text: []const u8 = undefined;
+            if (!(cbor.match(value, cbor.extract(&value_text)) catch false)) return true;
+
+            var nodes = NodeTexts.init(capture);
+            while (nodes.next()) |text| {
+                const is_match = std.mem.eql(u8, text, value_text);
+                if (mode.match_all and is_match != mode.positive) return false;
+                if (!mode.match_all and is_match == mode.positive) return true;
+            }
+            // No node forced a decision: with match_all every node passed; with match_any
+            // none did.
+            return mode.match_all;
+        }
+
+        fn eval_any_of(predicate: []const u8, capture: []const u8, positive: bool) cbor.Error!bool {
+            var iter = predicate;
+            const total = cbor.decodeArrayHeader(&iter) catch return true;
+            if (total < 2) return true;
+            try cbor.skipValue(&iter); // operator
+            try cbor.skipValue(&iter); // capture
+            const values = iter;
+            const value_count = total - 2;
+
+            var nodes = NodeTexts.init(capture);
+            while (nodes.next()) |text| {
+                if ((try text_in_set(text, values, value_count)) != positive) return false;
+            }
+            return true;
+        }
+
+        fn text_in_set(text: []const u8, values: []const u8, value_count: usize) cbor.Error!bool {
+            var iter = values;
+            var remaining = value_count;
+            while (remaining > 0) : (remaining -= 1) {
+                var value: []const u8 = undefined;
+                if (!try cbor.matchValue(&iter, cbor.extract(&value))) return false;
+                if (std.mem.eql(u8, text, value)) return true;
+            }
+            return false;
+        }
+
+        const NodeTexts = struct {
+            iter: []const u8,
+            remaining: usize,
+
+            fn init(value: []const u8) NodeTexts {
+                if (cbor.match(value, cbor.null_) catch false)
+                    return .{ .iter = value, .remaining = 0 };
+                if (cbor.match(value, cbor.string) catch false)
+                    return .{ .iter = value, .remaining = 1 };
+                var iter = value;
+                const count = cbor.decodeArrayHeader(&iter) catch 0;
+                return .{ .iter = iter, .remaining = count };
+            }
+
+            fn next(self: *NodeTexts) ?[]const u8 {
+                if (self.remaining == 0) return null;
+                self.remaining -= 1;
+                var text: []const u8 = undefined;
+                return if (cbor.matchValue(&self.iter, cbor.extract(&text)) catch false) text else null;
+            }
+        };
+    };
+    return struct {
+        fn validate(_: T, predicates: []const u8) bool {
+            return local.eval_simple_predicates(predicates) catch true;
+        }
+    }.validate;
+}
+
+test "SimpleNonRegex predicate evaluation" {
+    const expect = std.testing.expect;
+    const validator = SimpleNonRegex(void);
+    const eval = struct {
+        fn eval(value: anytype) bool {
+            var buf: [4096]u8 = undefined;
+            return validator({}, cbor.fmt(&buf, value));
+        }
+    }.eval;
+
+    try expect(eval(.{.{ "eq?", "x", "x" }}));
+    try expect(!eval(.{.{ "eq?", "y", "x" }}));
+    try expect(eval(.{.{ "not-eq?", "y", "x" }}));
+    try expect(!eval(.{.{ "not-eq?", "x", "x" }}));
+    try expect(eval(.{.{ "eq?", "abc", "abc" }}));
+
+    // multi-node capture: #eq? requires all nodes equal, #any-eq? requires one
+    try expect(eval(.{.{ "eq?", .{ "x", "x" }, "x" }}));
+    try expect(!eval(.{.{ "eq?", .{ "x", "y" }, "x" }}));
+    try expect(eval(.{.{ "any-eq?", .{ "y", "x" }, "x" }}));
+    try expect(!eval(.{.{ "any-eq?", .{ "y", "z" }, "x" }}));
+    try expect(eval(.{.{ "any-not-eq?", .{ "x", "y" }, "x" }}));
+    try expect(!eval(.{.{ "any-not-eq?", .{ "x", "x" }, "x" }}));
+
+    try expect(eval(.{.{ "any-of?", "y", "x", "y" }}));
+    try expect(!eval(.{.{ "any-of?", "z", "x", "y" }}));
+    try expect(eval(.{.{ "not-any-of?", "z", "x", "y" }}));
+    try expect(!eval(.{.{ "not-any-of?", "x", "x", "y" }}));
+    // every node of a multi-node capture must be in the set
+    try expect(eval(.{.{ "any-of?", .{ "x", "y" }, "x", "y" }}));
+    try expect(!eval(.{.{ "any-of?", .{ "x", "z" }, "x", "y" }}));
+
+    // a missing capture (null) has no nodes: #eq? vacuously holds, #any-eq? fails
+    try expect(eval(.{.{ "eq?", null, "x" }}));
+    try expect(!eval(.{.{ "any-eq?", null, "x" }}));
+
+    // unrecognized predicates always drop a match
+    try expect(!eval(.{.{ "match?", "x", "[a-z]+" }}));
+
+    // a match is kept only if every predicate passes
+    try expect(eval(.{ .{ "eq?", "x", "x" }, .{ "any-of?", "y", "y", "z" } }));
+    try expect(!eval(.{ .{ "eq?", "x", "x" }, .{ "eq?", "y", "z" } }));
+
+    // capture-to-capture with a multi-node right-hand side is left unevaluated
+    try expect(eval(.{.{ "eq?", "x", .{ "x", "y" } }}));
+}
+
 fn match_applies(
     self: *const Self,
     ctx: anytype,
