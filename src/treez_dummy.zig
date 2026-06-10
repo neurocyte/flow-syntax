@@ -58,24 +58,29 @@ pub const Query = struct {
         }
         pub fn execute(_: *@This(), _: *Query, _: *Node) void {}
         pub fn setPointRange(_: *@This(), _: Point, _: Point) void {}
-        pub fn nextMatch(_: *@This()) ?*Match {
+        pub fn nextMatch(_: *@This()) ?Match {
             return null;
         }
         pub fn destroy(_: *@This()) void {}
-
-        pub const Match = struct {
-            pattern_index: u16 = 0,
-            pub fn captures(_: *@This()) []Capture {
-                return &[_]Capture{};
-            }
-        };
-        pub const Capture = struct {
-            id: u32,
-            node: Node,
-        };
+    };
+    pub const Match = struct {
+        pattern_index: u16 = 0,
+        pub fn captures(_: *const @This()) []Capture {
+            return &[_]Capture{};
+        }
+    };
+    pub const Capture = struct {
+        id: u32,
+        node: Node,
     };
     pub fn getCaptureNameForId(_: *@This(), _: u32) []const u8 {
         return "";
+    }
+    pub fn getStringValueForId(_: *const Query, _: u32) []const u8 {
+        return "";
+    }
+    pub fn getPredicatesForPattern(_: *const @This(), _: u32) []const PredicateStep {
+        return &.{};
     }
     pub fn destroy(_: *@This()) void {}
 };
@@ -132,4 +137,14 @@ pub const Node = struct {
             return Node.dummy;
         }
     };
+};
+pub const PredicateStep = extern struct {
+    pub const Type = enum(c_uint) {
+        done,
+        capture,
+        string,
+    };
+
+    type: Type,
+    value_id: u32,
 };

@@ -1,4 +1,6 @@
 const std = @import("std");
+const Io = std.Io;
+const cbor = @import("cbor");
 const build_options = @import("build_options");
 
 const treez = if (build_options.use_tree_sitter)
@@ -271,76 +273,93 @@ fn normalize_lang_name(name: []const u8) []const u8 {
     return name;
 }
 
-/// Read a static `#set! injection.language "name"` predicate from the query's
-/// internal predicate table for the given pattern index, returning the language
-/// name string if found or null otherwise.
-///
-/// This accesses TSQuery internals via the same cast used in ts_bin_query_gen.zig
-fn get_static_injection_language(query: *Query, pattern_idx: u16) ?[]const u8 {
-    const tss = @import("ts_serializer.zig");
-    const ts_query: *tss.TSQuery = @ptrCast(@alignCast(query));
+/// Read a static `#set! injection.language "name"` predicate for the given
+/// pattern index, returning the language name string if found or null otherwise.
+fn get_static_injection_language(query: *const Query, pattern_idx: u16) ?[]const u8 {
+    const steps = query.getPredicatesForPattern(pattern_idx);
+    var i: usize = 0;
+    while (i < steps.len) {
+        var j = i;
+        while (j < steps.len and steps[j].type != .done) j += 1;
+        const group = steps[i..j];
+        i = j + 1;
 
-    const patterns = ts_query.patterns;
-    if (patterns.contents == null or @as(u32, pattern_idx) >= patterns.size) return null;
-    const pattern_arr: [*]tss.QueryPattern = @ptrCast(patterns.contents.?);
-    const pattern = pattern_arr[pattern_idx];
-
-    const pred_steps = ts_query.predicate_steps;
-    if (pred_steps.contents == null or pred_steps.size == 0) return null;
-    const steps_arr: [*]tss.PredicateStep = @ptrCast(pred_steps.contents.?);
-
-    const pred_values = ts_query.predicate_values;
-    if (pred_values.slices.contents == null or pred_values.characters.contents == null) return null;
-    const slices_arr: [*]tss.Slice = @ptrCast(pred_values.slices.contents.?);
-    const chars: [*]u8 = @ptrCast(pred_values.characters.contents.?);
-
-    // Walk the predicate steps for this pattern looking for the sequence:
-    //   string("set!")  string("injection.language")  string("<name>")  done
-    const step_start = pattern.predicate_steps.offset;
-    const step_end = step_start + pattern.predicate_steps.length;
-
-    var i = step_start;
-    while (i < step_end) {
-        const s = steps_arr[i];
-        if (s.type == .done) {
-            i += 1;
-            continue;
-        }
-
-        // We need at least 4 steps: 3 strings + done.
-        if (i + 3 >= step_end) break;
-
-        const s0 = steps_arr[i];
-        const s1 = steps_arr[i + 1];
-        const s2 = steps_arr[i + 2];
-        const s3 = steps_arr[i + 3];
-
-        if (s0.type == .string and s1.type == .string and
-            s2.type == .string and s3.type == .done)
+        if (group.len == 3 and
+            group[0].type == .string and
+            group[1].type == .string and
+            group[2].type == .string)
         {
-            if (s0.value_id < pred_values.slices.size and
-                s1.value_id < pred_values.slices.size and
-                s2.value_id < pred_values.slices.size)
+            const name = query.getStringValueForId(group[0].value_id);
+            const key = query.getStringValueForId(group[1].value_id);
+            if (std.mem.eql(u8, name, "set!") and
+                std.mem.eql(u8, key, "injection.language"))
             {
-                const sl0 = slices_arr[s0.value_id];
-                const sl1 = slices_arr[s1.value_id];
-                const sl2 = slices_arr[s2.value_id];
-                const n0 = chars[sl0.offset .. sl0.offset + sl0.length];
-                const n1 = chars[sl1.offset .. sl1.offset + sl1.length];
-                const n2 = chars[sl2.offset .. sl2.offset + sl2.length];
-                if (std.mem.eql(u8, n0, "set!") and
-                    std.mem.eql(u8, n1, "injection.language"))
-                {
-                    return n2;
-                }
+                return query.getStringValueForId(group[2].value_id);
             }
         }
-
-        // Advance past this predicate group to the next .done boundary.
-        while (i < step_end and steps_arr[i].type != .done) i += 1;
-        if (i < step_end) i += 1;
     }
     return null;
+}
+
+pub fn write_pattern_predicates_cbor(
+    query: *Query,
+    match: Query.Match,
+    content: []const u8,
+    writer: *Io.Writer,
+) !void {
+    const steps = query.getPredicatesForPattern(match.pattern_index);
+    var group_count: usize = 0;
+    for (steps) |step| {
+        if (step.type == .done) group_count += 1;
+    }
+    try cbor.writeArrayHeader(writer, group_count);
+
+    var i: usize = 0;
+    while (i < steps.len) {
+        var j = i;
+        while (j < steps.len and steps[j].type != .done) j += 1;
+        const group = steps[i..j];
+        i = j + 1;
+
+        try cbor.writeArrayHeader(writer, group.len);
+        for (group) |step| {
+            switch (step.type) {
+                .string => try cbor.writeValue(writer, query.getStringValueForId(step.value_id)),
+                .capture => try write_capture_values(match, step.value_id, content, writer),
+                .done => unreachable,
+            }
+        }
+    }
+}
+
+fn write_capture_values(match: Query.Match, capture_id: u32, content: []const u8, writer: *Io.Writer) !void {
+    var count: usize = 0;
+    for (match.captures()) |capture| {
+        if (capture.id == capture_id) count += 1;
+    }
+
+    switch (count) {
+        0 => try cbor.writeValue(writer, null),
+        1 => for (match.captures()) |capture| {
+            if (capture.id == capture_id)
+                return cbor.writeValue(writer, node_text(content, capture.node));
+        },
+        else => {
+            try cbor.writeArrayHeader(writer, count);
+            for (match.captures()) |capture| {
+                if (capture.id == capture_id)
+                    try cbor.writeValue(writer, node_text(content, capture.node));
+            }
+        },
+    }
+}
+
+fn node_text(content: []const u8, node: Node) []const u8 {
+    const range = node.getRange();
+    const s = range.start_byte;
+    const e = range.end_byte;
+    if (s > e or e > content.len) return "";
+    return content[s..e];
 }
 
 fn find_line_begin(s: []const u8, line: usize) ?usize {
@@ -360,8 +379,192 @@ fn CallBack(comptime T: type) type {
     return fn (ctx: T, sel: Range, scope: []const u8, id: u32, capture_idx: usize, node: *const Node) error{Stop}!void;
 }
 
-pub fn render(self: *Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), range: ?Range) !void {
-    try self.render_highlights_only(ctx, cb, range);
+/// A match validator that is given the predicates attached to a match to
+/// evaluate
+fn Validator(comptime T: type) type {
+    return fn (ctx: T, predicates: []const u8) bool;
+}
+
+pub fn IgnoreAll(comptime T: type) Validator(T) {
+    return struct {
+        pub fn validate(_: T, _: []const u8) bool {
+            return false;
+        }
+    }.validate;
+}
+pub fn AcceptAll(comptime T: type) Validator(T) {
+    return struct {
+        pub fn validate(_: T, _: []const u8) bool {
+            return true;
+        }
+    }.validate;
+}
+
+pub fn SimpleNonRegex(comptime T: type) Validator(T) {
+    const local = struct {
+        fn eval_simple_predicates(predicates: []const u8) cbor.Error!bool {
+            var iter = predicates;
+            var count = cbor.decodeArrayHeader(&iter) catch return true;
+            while (count > 0) : (count -= 1) {
+                var predicate: []const u8 = undefined;
+                _ = try cbor.matchValue(&iter, cbor.extract_cbor(&predicate));
+                if (!try eval_simple_predicate(predicate)) return false;
+            }
+            return true;
+        }
+
+        fn eval_simple_predicate(predicate: []const u8) cbor.Error!bool {
+            var capture: []const u8 = undefined;
+            var value: []const u8 = undefined;
+            if (try cbor.match(predicate, .{ "eq?", cbor.extract_cbor(&capture), cbor.extract_cbor(&value) }))
+                return eval_eq(capture, value, .{ .positive = true, .match_all = true });
+            if (try cbor.match(predicate, .{ "not-eq?", cbor.extract_cbor(&capture), cbor.extract_cbor(&value) }))
+                return eval_eq(capture, value, .{ .positive = false, .match_all = true });
+            if (try cbor.match(predicate, .{ "any-eq?", cbor.extract_cbor(&capture), cbor.extract_cbor(&value) }))
+                return eval_eq(capture, value, .{ .positive = true, .match_all = false });
+            if (try cbor.match(predicate, .{ "any-not-eq?", cbor.extract_cbor(&capture), cbor.extract_cbor(&value) }))
+                return eval_eq(capture, value, .{ .positive = false, .match_all = false });
+            if (try cbor.match(predicate, .{ "any-of?", cbor.extract_cbor(&capture), cbor.more }))
+                return eval_any_of(predicate, capture, true);
+            if (try cbor.match(predicate, .{ "not-any-of?", cbor.extract_cbor(&capture), cbor.more }))
+                return eval_any_of(predicate, capture, false);
+            return false;
+        }
+
+        const EqMode = struct { positive: bool, match_all: bool };
+        fn eval_eq(capture: []const u8, value: []const u8, mode: EqMode) cbor.Error!bool {
+            var value_text: []const u8 = undefined;
+            if (!(cbor.match(value, cbor.extract(&value_text)) catch false)) return true;
+
+            var nodes = NodeTexts.init(capture);
+            while (nodes.next()) |text| {
+                const is_match = std.mem.eql(u8, text, value_text);
+                if (mode.match_all and is_match != mode.positive) return false;
+                if (!mode.match_all and is_match == mode.positive) return true;
+            }
+            // No node forced a decision: with match_all every node passed; with match_any
+            // none did.
+            return mode.match_all;
+        }
+
+        fn eval_any_of(predicate: []const u8, capture: []const u8, positive: bool) cbor.Error!bool {
+            var iter = predicate;
+            const total = cbor.decodeArrayHeader(&iter) catch return true;
+            if (total < 2) return true;
+            try cbor.skipValue(&iter); // operator
+            try cbor.skipValue(&iter); // capture
+            const values = iter;
+            const value_count = total - 2;
+
+            var nodes = NodeTexts.init(capture);
+            while (nodes.next()) |text| {
+                if ((try text_in_set(text, values, value_count)) != positive) return false;
+            }
+            return true;
+        }
+
+        fn text_in_set(text: []const u8, values: []const u8, value_count: usize) cbor.Error!bool {
+            var iter = values;
+            var remaining = value_count;
+            while (remaining > 0) : (remaining -= 1) {
+                var value: []const u8 = undefined;
+                if (!try cbor.matchValue(&iter, cbor.extract(&value))) return false;
+                if (std.mem.eql(u8, text, value)) return true;
+            }
+            return false;
+        }
+
+        const NodeTexts = struct {
+            iter: []const u8,
+            remaining: usize,
+
+            fn init(value: []const u8) NodeTexts {
+                if (cbor.match(value, cbor.null_) catch false)
+                    return .{ .iter = value, .remaining = 0 };
+                if (cbor.match(value, cbor.string) catch false)
+                    return .{ .iter = value, .remaining = 1 };
+                var iter = value;
+                const count = cbor.decodeArrayHeader(&iter) catch 0;
+                return .{ .iter = iter, .remaining = count };
+            }
+
+            fn next(self: *NodeTexts) ?[]const u8 {
+                if (self.remaining == 0) return null;
+                self.remaining -= 1;
+                var text: []const u8 = undefined;
+                return if (cbor.matchValue(&self.iter, cbor.extract(&text)) catch false) text else null;
+            }
+        };
+    };
+    return struct {
+        fn validate(_: T, predicates: []const u8) bool {
+            return local.eval_simple_predicates(predicates) catch true;
+        }
+    }.validate;
+}
+
+test "SimpleNonRegex predicate evaluation" {
+    const expect = std.testing.expect;
+    const validator = SimpleNonRegex(void);
+    const eval = struct {
+        fn eval(value: anytype) bool {
+            var buf: [4096]u8 = undefined;
+            return validator({}, cbor.fmt(&buf, value));
+        }
+    }.eval;
+
+    try expect(eval(.{.{ "eq?", "x", "x" }}));
+    try expect(!eval(.{.{ "eq?", "y", "x" }}));
+    try expect(eval(.{.{ "not-eq?", "y", "x" }}));
+    try expect(!eval(.{.{ "not-eq?", "x", "x" }}));
+    try expect(eval(.{.{ "eq?", "abc", "abc" }}));
+
+    // multi-node capture: #eq? requires all nodes equal, #any-eq? requires one
+    try expect(eval(.{.{ "eq?", .{ "x", "x" }, "x" }}));
+    try expect(!eval(.{.{ "eq?", .{ "x", "y" }, "x" }}));
+    try expect(eval(.{.{ "any-eq?", .{ "y", "x" }, "x" }}));
+    try expect(!eval(.{.{ "any-eq?", .{ "y", "z" }, "x" }}));
+    try expect(eval(.{.{ "any-not-eq?", .{ "x", "y" }, "x" }}));
+    try expect(!eval(.{.{ "any-not-eq?", .{ "x", "x" }, "x" }}));
+
+    try expect(eval(.{.{ "any-of?", "y", "x", "y" }}));
+    try expect(!eval(.{.{ "any-of?", "z", "x", "y" }}));
+    try expect(eval(.{.{ "not-any-of?", "z", "x", "y" }}));
+    try expect(!eval(.{.{ "not-any-of?", "x", "x", "y" }}));
+    // every node of a multi-node capture must be in the set
+    try expect(eval(.{.{ "any-of?", .{ "x", "y" }, "x", "y" }}));
+    try expect(!eval(.{.{ "any-of?", .{ "x", "z" }, "x", "y" }}));
+
+    // a missing capture (null) has no nodes: #eq? vacuously holds, #any-eq? fails
+    try expect(eval(.{.{ "eq?", null, "x" }}));
+    try expect(!eval(.{.{ "any-eq?", null, "x" }}));
+
+    // unrecognized predicates always drop a match
+    try expect(!eval(.{.{ "match?", "x", "[a-z]+" }}));
+
+    // a match is kept only if every predicate passes
+    try expect(eval(.{ .{ "eq?", "x", "x" }, .{ "any-of?", "y", "y", "z" } }));
+    try expect(!eval(.{ .{ "eq?", "x", "x" }, .{ "eq?", "y", "z" } }));
+
+    // capture-to-capture with a multi-node right-hand side is left unevaluated
+    try expect(eval(.{.{ "eq?", "x", .{ "x", "y" } }}));
+}
+
+fn match_applies(
+    self: *const Self,
+    ctx: anytype,
+    comptime validator: Validator(@TypeOf(ctx)),
+    match: Query.Match,
+) !bool {
+    if (self.query.getPredicatesForPattern(match.pattern_index).len == 0) return true;
+    var predicates: Io.Writer.Allocating = .init(self.allocator);
+    defer predicates.deinit();
+    try write_pattern_predicates_cbor(self.query, match, self.content orelse "", &predicates.writer);
+    return validator(ctx, predicates.writer.buffered());
+}
+
+pub fn render(self: *Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), comptime validator: Validator(@TypeOf(ctx)), range: ?Range) !void {
+    try self.render_highlights_only(ctx, cb, validator, range);
 
     const content = self.content orelse return;
     for (self.injection_list.items) |*inj| {
@@ -421,20 +624,25 @@ pub fn render(self: *Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), ra
                 };
                 try cb(self_.parent_ctx, doc_range, scope, id, capture_idx, node);
             }
+
+            fn translated_validator(self_: *const @This(), predicates: []const u8) bool {
+                return validator(self_.parent_ctx, predicates);
+            }
         };
 
         var inj_ctx: InjCtx = .{ .parent_ctx = ctx, .inj = inj };
-        try child_syn.render_highlights_only(&inj_ctx, InjCtx.translated_cb, child_range);
+        try child_syn.render_highlights_only(&inj_ctx, InjCtx.translated_cb, InjCtx.translated_validator, child_range);
     }
 }
 
-fn render_highlights_only(self: *const Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), range: ?Range) !void {
+fn render_highlights_only(self: *const Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), comptime validator: Validator(@TypeOf(ctx)), range: ?Range) !void {
     const cursor = try Query.Cursor.create();
     defer cursor.destroy();
     const tree = self.tree orelse return;
     cursor.execute(self.query, tree.getRootNode());
     if (range) |r| cursor.setPointRange(r.start_point, r.end_point);
     while (cursor.nextMatch()) |match| {
+        if (!try self.match_applies(ctx, validator, match)) continue;
         var idx: usize = 0;
         for (match.captures()) |capture| {
             try cb(ctx, capture.node.getRange(), self.query.getCaptureNameForId(capture.id), capture.id, idx, &capture.node);
@@ -443,7 +651,7 @@ fn render_highlights_only(self: *const Self, ctx: anytype, comptime cb: CallBack
     }
 }
 
-pub fn highlights_at_point(self: *const Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), point: Point) bool {
+pub fn highlights_at_point(self: *const Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), comptime validator: Validator(@TypeOf(ctx)), point: Point) bool {
     const cursor = Query.Cursor.create() catch return false;
     defer cursor.destroy();
     const tree = self.tree orelse return false;
@@ -451,6 +659,7 @@ pub fn highlights_at_point(self: *const Self, ctx: anytype, comptime cb: CallBac
     cursor.setPointRange(.{ .row = point.row, .column = 0 }, .{ .row = point.row + 1, .column = 0 });
     var found_highlight = false;
     while (cursor.nextMatch()) |match| {
+        if (!(self.match_applies(ctx, validator, match) catch true)) continue;
         for (match.captures()) |capture| {
             const range = capture.node.getRange();
             const start = range.start_point;
@@ -500,5 +709,9 @@ test "simple build and link test" {
 
     try syntax.render({}, struct {
         fn cb(_: void, _: Range, _: []const u8, _: u32, _: usize, _: *const Node) error{Stop}!void {}
-    }.cb, null);
+    }.cb, struct {
+        fn validate(_: void, _: []const u8) bool {
+            return true;
+        }
+    }.validate, null);
 }
