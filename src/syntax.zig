@@ -428,7 +428,7 @@ pub fn SimpleNonRegex(comptime T: type) Validator(T) {
                 return eval_any_of(predicate, capture, true);
             if (try cbor.match(predicate.bytes, .{ "not-any-of?", cbor.extract(&capture), cbor.more }))
                 return eval_any_of(predicate, capture, false);
-            var op: [] const u8 = undefined;
+            var op: []const u8 = undefined;
             if (try cbor.match(predicate.bytes, .{ cbor.extract(&op), cbor.more }))
                 return std.mem.endsWith(u8, op, "!"); // directives always evaluate to true
             return false;
