@@ -382,19 +382,19 @@ fn CallBack(comptime T: type) type {
 /// A match validator that is given the predicates attached to a match to
 /// evaluate
 fn Validator(comptime T: type) type {
-    return fn (ctx: T, predicates: []const u8) bool;
+    return fn (ctx: T, predicates: cbor.Raw) bool;
 }
 
 pub fn IgnoreAll(comptime T: type) Validator(T) {
     return struct {
-        pub fn validate(_: T, _: []const u8) bool {
+        pub fn validate(_: T, _: cbor.Raw) bool {
             return false;
         }
     }.validate;
 }
 pub fn AcceptAll(comptime T: type) Validator(T) {
     return struct {
-        pub fn validate(_: T, _: []const u8) bool {
+        pub fn validate(_: T, _: cbor.Raw) bool {
             return true;
         }
     }.validate;
@@ -402,39 +402,39 @@ pub fn AcceptAll(comptime T: type) Validator(T) {
 
 pub fn SimpleNonRegex(comptime T: type) Validator(T) {
     const local = struct {
-        fn eval_simple_predicates(predicates: []const u8) cbor.Error!bool {
-            var iter = predicates;
+        fn eval_simple_predicates(predicates: cbor.Raw) cbor.Error!bool {
+            var iter = predicates.bytes;
             var count = cbor.decodeArrayHeader(&iter) catch return true;
             while (count > 0) : (count -= 1) {
-                var predicate: []const u8 = undefined;
-                _ = try cbor.matchValue(&iter, cbor.extract_cbor(&predicate));
+                var predicate: cbor.Raw = undefined;
+                _ = try cbor.matchValue(&iter, cbor.extract(&predicate));
                 if (!try eval_simple_predicate(predicate)) return false;
             }
             return true;
         }
 
-        fn eval_simple_predicate(predicate: []const u8) cbor.Error!bool {
-            var capture: []const u8 = undefined;
-            var value: []const u8 = undefined;
-            if (try cbor.match(predicate, .{ "eq?", cbor.extract_cbor(&capture), cbor.extract_cbor(&value) }))
+        fn eval_simple_predicate(predicate: cbor.Raw) cbor.Error!bool {
+            var capture: cbor.Raw = undefined;
+            var value: cbor.Raw = undefined;
+            if (try cbor.match(predicate.bytes, .{ "eq?", cbor.extract(&capture), cbor.extract(&value) }))
                 return eval_eq(capture, value, .{ .positive = true, .match_all = true });
-            if (try cbor.match(predicate, .{ "not-eq?", cbor.extract_cbor(&capture), cbor.extract_cbor(&value) }))
+            if (try cbor.match(predicate.bytes, .{ "not-eq?", cbor.extract(&capture), cbor.extract(&value) }))
                 return eval_eq(capture, value, .{ .positive = false, .match_all = true });
-            if (try cbor.match(predicate, .{ "any-eq?", cbor.extract_cbor(&capture), cbor.extract_cbor(&value) }))
+            if (try cbor.match(predicate.bytes, .{ "any-eq?", cbor.extract(&capture), cbor.extract(&value) }))
                 return eval_eq(capture, value, .{ .positive = true, .match_all = false });
-            if (try cbor.match(predicate, .{ "any-not-eq?", cbor.extract_cbor(&capture), cbor.extract_cbor(&value) }))
+            if (try cbor.match(predicate.bytes, .{ "any-not-eq?", cbor.extract(&capture), cbor.extract(&value) }))
                 return eval_eq(capture, value, .{ .positive = false, .match_all = false });
-            if (try cbor.match(predicate, .{ "any-of?", cbor.extract_cbor(&capture), cbor.more }))
+            if (try cbor.match(predicate.bytes, .{ "any-of?", cbor.extract(&capture), cbor.more }))
                 return eval_any_of(predicate, capture, true);
-            if (try cbor.match(predicate, .{ "not-any-of?", cbor.extract_cbor(&capture), cbor.more }))
+            if (try cbor.match(predicate.bytes, .{ "not-any-of?", cbor.extract(&capture), cbor.more }))
                 return eval_any_of(predicate, capture, false);
             return false;
         }
 
         const EqMode = struct { positive: bool, match_all: bool };
-        fn eval_eq(capture: []const u8, value: []const u8, mode: EqMode) cbor.Error!bool {
+        fn eval_eq(capture: cbor.Raw, value: cbor.Raw, mode: EqMode) cbor.Error!bool {
             var value_text: []const u8 = undefined;
-            if (!(cbor.match(value, cbor.extract(&value_text)) catch false)) return true;
+            if (!(cbor.match(value.bytes, cbor.extract(&value_text)) catch false)) return true;
 
             var nodes = NodeTexts.init(capture);
             while (nodes.next()) |text| {
@@ -447,8 +447,8 @@ pub fn SimpleNonRegex(comptime T: type) Validator(T) {
             return mode.match_all;
         }
 
-        fn eval_any_of(predicate: []const u8, capture: []const u8, positive: bool) cbor.Error!bool {
-            var iter = predicate;
+        fn eval_any_of(predicate: cbor.Raw, capture: cbor.Raw, positive: bool) cbor.Error!bool {
+            var iter = predicate.bytes;
             const total = cbor.decodeArrayHeader(&iter) catch return true;
             if (total < 2) return true;
             try cbor.skipValue(&iter); // operator
@@ -478,12 +478,12 @@ pub fn SimpleNonRegex(comptime T: type) Validator(T) {
             iter: []const u8,
             remaining: usize,
 
-            fn init(value: []const u8) NodeTexts {
-                if (cbor.match(value, cbor.null_) catch false)
-                    return .{ .iter = value, .remaining = 0 };
-                if (cbor.match(value, cbor.string) catch false)
-                    return .{ .iter = value, .remaining = 1 };
-                var iter = value;
+            fn init(value: cbor.Raw) NodeTexts {
+                if (cbor.match(value.bytes, cbor.null_) catch false)
+                    return .{ .iter = value.bytes, .remaining = 0 };
+                if (cbor.match(value.bytes, cbor.string) catch false)
+                    return .{ .iter = value.bytes, .remaining = 1 };
+                var iter = value.bytes;
                 const count = cbor.decodeArrayHeader(&iter) catch 0;
                 return .{ .iter = iter, .remaining = count };
             }
@@ -497,7 +497,7 @@ pub fn SimpleNonRegex(comptime T: type) Validator(T) {
         };
     };
     return struct {
-        fn validate(_: T, predicates: []const u8) bool {
+        fn validate(_: T, predicates: cbor.Raw) bool {
             return local.eval_simple_predicates(predicates) catch true;
         }
     }.validate;
@@ -509,7 +509,7 @@ test "SimpleNonRegex predicate evaluation" {
     const eval = struct {
         fn eval(value: anytype) bool {
             var buf: [4096]u8 = undefined;
-            return validator({}, cbor.fmt(&buf, value));
+            return validator({}, .{ .bytes = cbor.fmt(&buf, value) });
         }
     }.eval;
 
@@ -560,7 +560,7 @@ fn match_applies(
     var predicates: Io.Writer.Allocating = .init(self.allocator);
     defer predicates.deinit();
     try write_pattern_predicates_cbor(self.query, match, self.content orelse "", &predicates.writer);
-    return validator(ctx, predicates.writer.buffered());
+    return validator(ctx, .{ .bytes = predicates.writer.buffered() });
 }
 
 pub fn render(self: *Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), comptime validator: Validator(@TypeOf(ctx)), range: ?Range) !void {
@@ -625,7 +625,7 @@ pub fn render(self: *Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), co
                 try cb(self_.parent_ctx, doc_range, scope, id, capture_idx, node);
             }
 
-            fn translated_validator(self_: *const @This(), predicates: []const u8) bool {
+            fn translated_validator(self_: *const @This(), predicates: cbor.Raw) bool {
                 return validator(self_.parent_ctx, predicates);
             }
         };
@@ -710,7 +710,7 @@ test "simple build and link test" {
     try syntax.render({}, struct {
         fn cb(_: void, _: Range, _: []const u8, _: u32, _: usize, _: *const Node) error{Stop}!void {}
     }.cb, struct {
-        fn validate(_: void, _: []const u8) bool {
+        fn validate(_: void, _: cbor.Raw) bool {
             return true;
         }
     }.validate, null);
