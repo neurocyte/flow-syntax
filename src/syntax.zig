@@ -428,6 +428,9 @@ pub fn SimpleNonRegex(comptime T: type) Validator(T) {
                 return eval_any_of(predicate, capture, true);
             if (try cbor.match(predicate.bytes, .{ "not-any-of?", cbor.extract(&capture), cbor.more }))
                 return eval_any_of(predicate, capture, false);
+            var op: [] const u8 = undefined;
+            if (try cbor.match(predicate.bytes, .{ cbor.extract(&op), cbor.more }))
+                return std.mem.endsWith(u8, op, "!"); // directives always evaluate to true
             return false;
         }
 
@@ -541,6 +544,13 @@ test "SimpleNonRegex predicate evaluation" {
 
     // unrecognized predicates always drop a match
     try expect(!eval(.{.{ "match?", "x", "[a-z]+" }}));
+
+    // directives (names ending in '!', e.g. #set!) are ignored and keep the match
+    try expect(eval(.{.{ "set!", "injection.language", "zig" }}));
+    try expect(eval(.{.{ "set!", "key" }}));
+    try expect(eval(.{.{ "select-adjacent!", "x", "y" }}));
+    // a directive does not rescue a failing predicate in the same group
+    try expect(!eval(.{ .{ "set!", "k", "v" }, .{ "eq?", "y", "z" } }));
 
     // a match is kept only if every predicate passes
     try expect(eval(.{ .{ "eq?", "x", "x" }, .{ "any-of?", "y", "y", "z" } }));
