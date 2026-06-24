@@ -139,6 +139,7 @@ fn get_cached_query(self: *Self, entry: *CacheEntry) Error!?*Query {
 
     return if (entry.query) |query| query else blk: {
         const lang = entry.lang_fn() orelse std.debug.panic("tree-sitter parser function failed for language: {s}", .{entry.file_type_name});
+        if (!build_options.use_tree_sitter) break :blk try treez.Query.create(lang, "");
         const queries = FileType.queries.get(entry.file_type_name) orelse return null;
         const query_bin = switch (entry.query_type) {
             .highlights => queries.highlights_bin,
