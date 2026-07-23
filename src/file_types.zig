@@ -39,6 +39,13 @@ pub const bash = .{
     .first_line_matches = FirstLineMatch{ .prefix = "#!", .content = "sh" },
 };
 
+pub const bibtex = .{
+    .description = "BibTeX",
+    .icon = "",
+    .extensions = .{ "bib" },
+    .comment = "%",
+};
+
 pub const c = .{
     .description = "C",
     .icon = "",
