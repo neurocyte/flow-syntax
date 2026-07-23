@@ -332,6 +332,13 @@ pub const julia = .{
     .comment = "#",
 };
 
+pub const just = .{
+    .description = "Just",
+    .icon = "J",
+    .extensions = .{"Justfile", "justfile"},
+    .comment = "#",
+};
+
 pub const kdl = .{
     .description = "KDL",
     .color = 0x000000,
