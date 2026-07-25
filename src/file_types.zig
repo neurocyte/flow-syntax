@@ -39,6 +39,13 @@ pub const bash = .{
     .first_line_matches = FirstLineMatch{ .prefix = "#!", .content = "sh" },
 };
 
+pub const bibtex = .{
+    .description = "BibTeX",
+    .icon = "",
+    .extensions = .{ "bib" },
+    .comment = "%",
+};
+
 pub const c = .{
     .description = "C",
     .icon = "",
@@ -329,6 +336,13 @@ pub const julia = .{
     .color = 0x4D64AE,
     .icon = "",
     .extensions = .{"jl"},
+    .comment = "#",
+};
+
+pub const just = .{
+    .description = "Just",
+    .icon = "J",
+    .extensions = .{"Justfile", "justfile"},
     .comment = "#",
 };
 
