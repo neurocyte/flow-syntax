@@ -764,6 +764,15 @@ pub const typst = .{
     .injections = "tree-sitter-typst/queries/typst/injections.scm",
 };
 
+pub const unison = .{
+    .description = "Unison",
+    .icon = "U",
+    .extensions = .{ "u" },
+    .comment = "--",
+    .highlights = "nvim-treesitter/runtime/queries/unison/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/unison/injections.scm",
+};
+
 pub const uxntal = .{
     .description = "Uxntal",
     .extensions = .{"tal"},
