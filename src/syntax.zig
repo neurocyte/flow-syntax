@@ -376,7 +376,37 @@ fn find_line_begin(s: []const u8, line: usize) ?usize {
 }
 
 fn CallBack(comptime T: type) type {
-    return fn (ctx: T, sel: Range, scope: []const u8, id: u32, capture_idx: usize, node: *const Node) error{Stop}!void;
+    return fn (ctx: T, sel: Range, scope: []const u8, id: u32, capture_idx: usize, priority: i32, node: *const Node) error{Stop}!void;
+}
+
+/// default match priority (as defined by nvim)
+const default_priority: i32 = 100;
+
+fn get_pattern_priority(query: *const Query, pattern_idx: u16) i32 {
+    const steps = query.getPredicatesForPattern(pattern_idx);
+    var i: usize = 0;
+    while (i < steps.len) {
+        var j = i;
+        while (j < steps.len and steps[j].type != .done) j += 1;
+        const group = steps[i..j];
+        i = j + 1;
+
+        if (group.len == 3 and
+            group[0].type == .string and
+            group[1].type == .string and
+            group[2].type == .string)
+        {
+            const name = query.getStringValueForId(group[0].value_id);
+            const key = query.getStringValueForId(group[1].value_id);
+            if (std.mem.eql(u8, name, "set!") and
+                std.mem.eql(u8, key, "priority"))
+            {
+                const value = query.getStringValueForId(group[2].value_id);
+                return std.fmt.parseInt(i32, value, 10) catch default_priority;
+            }
+        }
+    }
+    return default_priority;
 }
 
 /// A match validator that is given the predicates attached to a match to
@@ -618,6 +648,7 @@ pub fn render(self: *Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), co
                 scope: []const u8,
                 id: u32,
                 capture_idx: usize,
+                priority: i32,
                 node: *const Node,
             ) error{Stop}!void {
                 const start_row = child_sel.start_point.row + self_.inj.start_point.row;
@@ -632,7 +663,7 @@ pub fn render(self: *Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), co
                     .start_byte = child_sel.start_byte,
                     .end_byte = child_sel.end_byte,
                 };
-                try cb(self_.parent_ctx, doc_range, scope, id, capture_idx, node);
+                try cb(self_.parent_ctx, doc_range, scope, id, capture_idx, priority, node);
             }
 
             fn translated_validator(self_: *const @This(), predicates: cbor.Raw) bool {
@@ -653,9 +684,10 @@ fn render_highlights_only(self: *const Self, ctx: anytype, comptime cb: CallBack
     if (range) |r| cursor.setPointRange(r.start_point, r.end_point);
     while (cursor.nextMatch()) |match| {
         if (!try self.match_applies(ctx, validator, match)) continue;
+        const priority = get_pattern_priority(self.query, match.pattern_index);
         var idx: usize = 0;
         for (match.captures()) |capture| {
-            try cb(ctx, capture.node.getRange(), self.query.getCaptureNameForId(capture.id), capture.id, idx, &capture.node);
+            try cb(ctx, capture.node.getRange(), self.query.getCaptureNameForId(capture.id), capture.id, idx, priority, &capture.node);
             idx += 1;
         }
     }
@@ -670,13 +702,14 @@ pub fn highlights_at_point(self: *const Self, ctx: anytype, comptime cb: CallBac
     var found_highlight = false;
     while (cursor.nextMatch()) |match| {
         if (!(self.match_applies(ctx, validator, match) catch true)) continue;
+        const priority = get_pattern_priority(self.query, match.pattern_index);
         for (match.captures()) |capture| {
             const range = capture.node.getRange();
             const start = range.start_point;
             const end = range.end_point;
             const scope = self.query.getCaptureNameForId(capture.id);
             if (start.row == point.row and start.column <= point.column and point.column < end.column) {
-                cb(ctx, range, scope, capture.id, 0, &capture.node) catch return found_highlight;
+                cb(ctx, range, scope, capture.id, 0, priority, &capture.node) catch return found_highlight;
                 found_highlight = true;
             }
             break;
@@ -718,10 +751,37 @@ test "simple build and link test" {
     try syntax.refresh_full(content);
 
     try syntax.render({}, struct {
-        fn cb(_: void, _: Range, _: []const u8, _: u32, _: usize, _: *const Node) error{Stop}!void {}
+        fn cb(_: void, _: Range, _: []const u8, _: u32, _: usize, _: i32, _: *const Node) error{Stop}!void {}
     }.cb, struct {
         fn validate(_: void, _: cbor.Raw) bool {
             return true;
         }
     }.validate, null);
+}
+
+test "get_pattern_priority reads #set! priority from the yaml query" {
+    if (!build_options.use_tree_sitter) return error.SkipZigTest;
+    const io = std.testing.io;
+    const gpa = std.testing.allocator;
+
+    const yaml_file_type = @import("file_type.zig").get_by_name_static("yaml") orelse return error.TestFailed;
+    const query_cache = try QueryCache.create(io, gpa, .{});
+    defer query_cache.deinit();
+    const syntax = try create(yaml_file_type, gpa, query_cache);
+    defer syntax.destroy();
+
+    // The nvim-treesitter yaml highlights query demotes (block_scalar) @string with
+    // `(#set! priority 99)`; every other pattern keeps the default priority of 100.
+    var seen_99 = false;
+    const count = syntax.query.getPatternCount();
+    var pattern: u16 = 0;
+    while (pattern < count) : (pattern += 1) {
+        const priority = get_pattern_priority(syntax.query, pattern);
+        if (priority == 99) {
+            seen_99 = true;
+        } else {
+            try std.testing.expectEqual(default_priority, priority);
+        }
+    }
+    try std.testing.expect(seen_99);
 }
