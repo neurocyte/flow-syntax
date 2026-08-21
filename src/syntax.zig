@@ -376,11 +376,14 @@ fn find_line_begin(s: []const u8, line: usize) ?usize {
 }
 
 fn CallBack(comptime T: type) type {
-    return fn (ctx: T, sel: Range, scope: []const u8, id: u32, capture_idx: usize, priority: i32, node: *const Node) error{Stop}!void;
+    return fn (ctx: T, sel: Range, scope: []const u8, id: u32, capture_idx: usize, priority: i32, pattern_index: u32, node: *const Node) error{Stop}!void;
 }
 
 /// default match priority (as defined by nvim)
 const default_priority: i32 = 100;
+
+/// injected-language captures are layered (far) above
+const injection_pattern_bias: u32 = 1 << 20;
 
 fn get_pattern_priority(query: *const Query, pattern_idx: u16) i32 {
     const steps = query.getPredicatesForPattern(pattern_idx);
@@ -649,6 +652,7 @@ pub fn render(self: *Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), co
                 id: u32,
                 capture_idx: usize,
                 priority: i32,
+                pattern_index: u32,
                 node: *const Node,
             ) error{Stop}!void {
                 const start_row = child_sel.start_point.row + self_.inj.start_point.row;
@@ -663,7 +667,7 @@ pub fn render(self: *Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), co
                     .start_byte = child_sel.start_byte,
                     .end_byte = child_sel.end_byte,
                 };
-                try cb(self_.parent_ctx, doc_range, scope, id, capture_idx, priority, node);
+                try cb(self_.parent_ctx, doc_range, scope, id, capture_idx, priority, pattern_index +| injection_pattern_bias, node);
             }
 
             fn translated_validator(self_: *const @This(), predicates: cbor.Raw) bool {
@@ -687,7 +691,7 @@ fn render_highlights_only(self: *const Self, ctx: anytype, comptime cb: CallBack
         const priority = get_pattern_priority(self.query, match.pattern_index);
         var idx: usize = 0;
         for (match.captures()) |capture| {
-            try cb(ctx, capture.node.getRange(), self.query.getCaptureNameForId(capture.id), capture.id, idx, priority, &capture.node);
+            try cb(ctx, capture.node.getRange(), self.query.getCaptureNameForId(capture.id), capture.id, idx, priority, match.pattern_index, &capture.node);
             idx += 1;
         }
     }
@@ -709,7 +713,7 @@ pub fn highlights_at_point(self: *const Self, ctx: anytype, comptime cb: CallBac
             const end = range.end_point;
             const scope = self.query.getCaptureNameForId(capture.id);
             if (start.row == point.row and start.column <= point.column and point.column < end.column) {
-                cb(ctx, range, scope, capture.id, 0, priority, &capture.node) catch return found_highlight;
+                cb(ctx, range, scope, capture.id, 0, priority, match.pattern_index, &capture.node) catch return found_highlight;
                 found_highlight = true;
             }
             break;
@@ -751,7 +755,7 @@ test "simple build and link test" {
     try syntax.refresh_full(content);
 
     try syntax.render({}, struct {
-        fn cb(_: void, _: Range, _: []const u8, _: u32, _: usize, _: i32, _: *const Node) error{Stop}!void {}
+        fn cb(_: void, _: Range, _: []const u8, _: u32, _: usize, _: i32, _: u32, _: *const Node) error{Stop}!void {}
     }.cb, struct {
         fn validate(_: void, _: cbor.Raw) bool {
             return true;
