@@ -775,6 +775,7 @@ pub const yaml = .{
     .icon = "",
     .extensions = .{ "yaml", "yml" },
     .comment = "#",
+    .highlights = "nvim-treesitter/runtime/queries/yaml/highlights.scm",
 };
 
 pub const zig = .{
