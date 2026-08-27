@@ -124,19 +124,20 @@ pub fn edit(self: *Self, ed: Edit) void {
 }
 
 pub fn refresh_from_buffer(self: *Self, buffer: anytype, metrics: anytype) !void {
+    try refresh_from_buffer_with_options(self, buffer, metrics, .{});
+}
+
+pub fn refresh_from_buffer_with_options(self: *Self, buffer: anytype, metrics: anytype, options: Parser.Options) !void {
     const old_tree = self.tree;
-    defer if (old_tree) |tree| tree.destroy();
 
     const State = struct {
         buffer: @TypeOf(buffer),
         metrics: @TypeOf(metrics),
-        syntax: *Self,
         result_buf: [1024]u8 = undefined,
     };
     var state: State = .{
         .buffer = buffer,
         .metrics = metrics,
-        .syntax = self,
     };
 
     const input: Input = .{
@@ -151,35 +152,33 @@ pub fn refresh_from_buffer(self: *Self, buffer: anytype, metrics: anytype) !void
         }.read,
         .encoding = .utf_8,
     };
-    self.tree = try self.parser.parse(old_tree, input);
+    self.tree = try self.parser.parseWithOptions(old_tree, input, options);
+    if (old_tree) |tree| tree.destroy();
 }
 
-pub fn refresh_from_string(self: *Self, content: [:0]const u8) !void {
-    const old_tree = self.tree;
-    defer if (old_tree) |tree| tree.destroy();
+pub fn refresh_from_string(self: *Self, content: []const u8) !void {
+    try refresh_from_string_with_options(self, content, .{});
+}
 
+pub fn refresh_from_string_with_options(self: *Self, content: []const u8, options: Parser.Options) !void {
     const State = struct {
         content: @TypeOf(content),
+
+        pub fn get_from_pos(
+            this: *@This(),
+            point: struct { row: u32, col: u32 },
+            _: []u8,
+            _: void,
+        ) []const u8 {
+            const pos = (find_line_begin(this.content, point.row) orelse return "") + point.col;
+            if (pos >= this.content.len) return "";
+            return this.content[pos..];
+        }
     };
-    var state: State = .{
+    const state: State = .{
         .content = content,
     };
-
-    const input: Input = .{
-        .payload = &state,
-        .read = struct {
-            fn read(payload: ?*anyopaque, _: u32, position: treez.Point, bytes_read: *u32) callconv(.c) [*:0]const u8 {
-                bytes_read.* = 0;
-                const ctx: *State = @ptrCast(@alignCast(payload orelse return ""));
-                const pos = (find_line_begin(ctx.content, position.row) orelse return "") + position.column;
-                if (pos >= ctx.content.len) return "";
-                bytes_read.* = @intCast(ctx.content.len - pos);
-                return ctx.content[pos..].ptr;
-            }
-        }.read,
-        .encoding = .utf_8,
-    };
-    self.tree = try self.parser.parse(old_tree, input);
+    try self.refresh_from_buffer_with_options(state, {}, options);
     if (self.content) |c| self.allocator.free(c);
     self.content = null;
     const content_copy = try self.allocator.dupe(u8, content);
