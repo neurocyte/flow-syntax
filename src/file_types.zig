@@ -293,6 +293,13 @@ pub const hurl = .{
     .injections = "nvim-treesitter/runtime/queries/hurl/injections.scm",
 };
 
+pub const ink = .{
+    .description = "Ink",
+    .icon = "i",
+    .extensions = .{"ink"},
+    .comment = "//",
+};
+
 pub const java = .{
     .description = "Java",
     .color = 0xEA2D2E,
