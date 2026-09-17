@@ -2,7 +2,7 @@
     .name = .flow_syntax,
     .version = "0.7.2",
     .fingerprint = 0x3ba2584ea1cec85f,
-    .minimum_zig_version = "0.17.0-dev.824+af27e8d06",
+    .minimum_zig_version = "0.17.0-dev.2122+3e15e99e6",
 
     .dependencies = .{
         .tree_sitter = .{
@@ -10,7 +10,7 @@
             .hash = "tree_sitter-0.26.7-z0LhyBJ76zNsau-y4JG1VxUriy3paK7NIW9mRmvmaLNC",
         },
         .cbor = .{
-            .url = "git+https://github.com/neurocyte/cbor#f050546f9a98d0f83384ab9b3a7f45d06722e029",
+            .url = "git+https://github.com/neurocyte/cbor?ref=master#f050546f9a98d0f83384ab9b3a7f45d06722e029",
             .hash = "cbor-1.3.0-RcQE_CyKAQDf-5eCDO7mO2Vv8laC-wYl779Hkap1lKWP",
         },
     },
