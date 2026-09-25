@@ -13,6 +13,10 @@
             .url = "git+https://github.com/neurocyte/cbor?ref=master#1e1a1c7e9e865b6c7df729bbff40a07f45774042",
             .hash = "cbor-1.3.0-RcQE_EyKAQDhrVXsEQ9yqQMOV8uR7MWDLZZBHSwY8dAv",
         },
+        .tree_sitter_thrift = .{
+            .url = "https://github.com/tree-sitter-grammars/tree-sitter-thrift/archive/68fd0d80943a828d9e6f49c58a74be1e9ca142cf.tar.gz",
+            .hash = "N-V-__8AAIIgDgCBAS3vnuAd9tZqM3gwc2VqqWbZdPtcjg-L",
+        },
     },
     .paths = .{
         "src",

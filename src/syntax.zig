@@ -789,3 +789,50 @@ test "get_pattern_priority reads #set! priority from the yaml query" {
     }
     try std.testing.expect(seen_99);
 }
+
+test "thrift parses and highlights" {
+    if (!build_options.use_tree_sitter) return error.SkipZigTest;
+    const io = std.testing.io;
+    const gpa = std.testing.allocator;
+
+    const thrift_file_type = @import("file_type.zig").get_by_name_static("thrift") orelse return error.TestFailed;
+    const query_cache = try QueryCache.create(io, gpa, .{});
+    defer query_cache.deinit();
+    const syntax = try create(thrift_file_type, gpa, query_cache);
+    defer syntax.destroy();
+
+    const content =
+        \\// A user
+        \\struct User {
+        \\  1: required string name
+        \\}
+        \\
+    ;
+    try syntax.refresh_full(content);
+    try std.testing.expectEqual(0, syntax.count_error_nodes());
+
+    const Seen = struct {
+        content: []const u8,
+        comment: bool = false,
+        keyword: bool = false,
+        type_name: bool = false,
+        builtin: bool = false,
+        property: bool = false,
+
+        fn cb(self: *@This(), range: Range, scope: []const u8, _: u32, _: usize, _: i32, _: u32, _: *const Node) error{Stop}!void {
+            const text = self.content[range.start_byte..range.end_byte];
+            if (std.mem.eql(u8, scope, "comment") and std.mem.eql(u8, text, "// A user")) self.comment = true;
+            if (std.mem.eql(u8, scope, "keyword.type") and std.mem.eql(u8, text, "struct")) self.keyword = true;
+            if (std.mem.eql(u8, scope, "type") and std.mem.eql(u8, text, "User")) self.type_name = true;
+            if (std.mem.eql(u8, scope, "type.builtin") and std.mem.eql(u8, text, "string")) self.builtin = true;
+            if (std.mem.eql(u8, scope, "property") and std.mem.eql(u8, text, "name")) self.property = true;
+        }
+    };
+    var seen: Seen = .{ .content = content };
+    try syntax.render(&seen, Seen.cb, SimpleNonRegex(*Seen), null);
+    try std.testing.expect(seen.comment);
+    try std.testing.expect(seen.keyword);
+    try std.testing.expect(seen.type_name);
+    try std.testing.expect(seen.builtin);
+    try std.testing.expect(seen.property);
+}

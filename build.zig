@@ -18,6 +18,9 @@ pub fn build(b: *std.Build) void {
 
     const tree_sitter_host_dep = b.dependency("tree_sitter", .{});
 
+    // grammars that are not part of the tree_sitter package
+    const tree_sitter_thrift_dep = b.dependency("tree_sitter_thrift", .{});
+
     const cbor_dep = b.dependency("cbor", .{
         .target = target,
         .optimize = optimize,
@@ -37,6 +40,7 @@ pub fn build(b: *std.Build) void {
     ts_bin_query_gen.root_module.addImport("cbor", cbor_dep.module("cbor"));
     ts_bin_query_gen.root_module.addImport("treez", tree_sitter_host_dep.module("treez"));
     ts_bin_query_gen.root_module.addImport("build_options", options_mod);
+    ts_bin_query_gen.root_module.linkLibrary(ts_grammar(b, tree_sitter_thrift_dep, "thrift", b.graph.host, .Debug));
 
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "queries/cmake/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-agda/queries/highlights.scm");
@@ -130,6 +134,7 @@ pub fn build(b: *std.Build) void {
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/rst/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/v/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/gdscript/highlights.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/thrift/highlights.scm");
 
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "queries/cmake/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-asm/queries/asm/injections.scm");
@@ -180,6 +185,7 @@ pub fn build(b: *std.Build) void {
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/rst/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/v/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/gdscript/injections.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/thrift/injections.scm");
 
     const syntax_mod = b.addModule("syntax", .{
         .root_source_file = b.path("src/syntax.zig"),
@@ -206,6 +212,10 @@ pub fn build(b: *std.Build) void {
     tests.use_lld = if (builtin.os.tag.isDarwin()) null else use_llvm;
 
     if (use_tree_sitter) {
+        const tree_sitter_thrift = ts_grammar(b, tree_sitter_thrift_dep, "thrift", target, optimize);
+        syntax_mod.linkLibrary(tree_sitter_thrift);
+        tests.root_module.linkLibrary(tree_sitter_thrift);
+
         const ts_bin_query_gen_step = b.addRunArtifact(ts_bin_query_gen);
         const output = ts_bin_query_gen_step.addOutputFileArg("bin_queries.cbor");
         syntax_mod.addAnonymousImport("syntax_bin_queries", .{ .root_source_file = output });
@@ -220,4 +230,31 @@ pub fn build(b: *std.Build) void {
 fn ts_queryfile(b: *std.Build, dep: *std.Build.Dependency, bin_gen: *std.Build.Step.Compile, comptime sub_path: []const u8) void {
     const module = b.createModule(.{ .root_source_file = dep.path(sub_path) });
     bin_gen.root_module.addImport(sub_path, module);
+}
+
+/// Builds the parser of a grammar package that is not part of the tree_sitter
+/// package, using the same flags the tree_sitter package uses for its parsers.
+fn ts_grammar(
+    b: *std.Build,
+    dep: *std.Build.Dependency,
+    comptime lang: []const u8,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Step.Compile {
+    const lib = b.addLibrary(.{
+        .name = "tree-sitter-" ++ lang,
+        .linkage = .static,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        }),
+    });
+    lib.root_module.addIncludePath(dep.path("src"));
+    lib.root_module.addCSourceFiles(.{
+        .root = dep.path("src"),
+        .files = &.{"parser.c"},
+        .flags = &.{"-fno-sanitize=undefined"},
+    });
+    return lib;
 }
