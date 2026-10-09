@@ -168,7 +168,10 @@ pub const elixir = .{
     .icon = "",
     .extensions = .{ "ex", "exs" },
     .comment = "#",
-    .injections = "tree-sitter-elixir/queries/injections.scm",
+    .highlights = "nvim-treesitter/runtime/queries/elixir/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/elixir/injections.scm",
+};
+
 };
 
 pub const elm = .{
