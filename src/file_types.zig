@@ -172,6 +172,14 @@ pub const elixir = .{
     .injections = "nvim-treesitter/runtime/queries/elixir/injections.scm",
 };
 
+pub const heex = .{
+    .description = "HEEx",
+    .color = 0x4e2a8e,
+    .icon = "",
+    .extensions = .{"heex"},
+    .comment = "<!--",
+    .highlights = "nvim-treesitter/runtime/queries/heex/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/heex/injections.scm",
 };
 
 pub const elm = .{
