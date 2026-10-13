@@ -30,7 +30,18 @@ errors_query: *Query,
 injections: ?*Query,
 tree: ?*treez.Tree = null,
 injection_list: std.ArrayList(Injection) = .empty,
+edited_ranges: std.ArrayList(ByteRange) = .empty,
+injections_state: enum { current, stale } = .current,
 content: ?[]u8 = null,
+
+const ByteRange = struct {
+    start: u32,
+    end: u32,
+
+    fn touches(self: ByteRange, start: u32, end: u32) bool {
+        return start <= self.end and end >= self.start;
+    }
+};
 
 pub const Injection = struct {
     lang_name: []const u8,
@@ -84,6 +95,7 @@ pub fn create_guess_file_type_static(allocator: std.mem.Allocator, content: []co
 pub fn destroy(self: *Self) void {
     self.clear_injections();
     self.injection_list.deinit(self.allocator);
+    self.edited_ranges.deinit(self.allocator);
     if (self.content) |c| self.allocator.free(c);
     if (self.tree) |tree| tree.destroy();
     self.query_cache.release(self.query, .highlights);
@@ -106,6 +118,8 @@ pub fn reset(self: *Self) void {
 fn clear_injections(self: *Self) void {
     for (self.injection_list.items) |*inj| inj.deinit(self.allocator);
     self.injection_list.clearRetainingCapacity();
+    self.edited_ranges.clearRetainingCapacity();
+    self.injections_state = .current;
 }
 
 pub fn refresh_full(self: *Self, content: []const u8) !void {
@@ -120,7 +134,43 @@ pub fn refresh_full(self: *Self, content: []const u8) !void {
 }
 
 pub fn edit(self: *Self, ed: Edit) void {
-    if (self.tree) |tree| tree.edit(&ed);
+    const tree = self.tree orelse return;
+    tree.edit(&ed);
+    self.edit_injections(ed);
+}
+
+fn edit_injections(self: *Self, ed: Edit) void {
+    var index: usize = 0;
+    while (index < self.injection_list.items.len) {
+        const inj = &self.injection_list.items[index];
+        if (inj.end_byte < ed.start_byte) {
+            index += 1;
+        } else if (inj.start_byte > ed.old_end_byte) {
+            if (inj.start_point.row == ed.old_end_point.row)
+                inj.start_point.column = inj.start_point.column - ed.old_end_point.column + ed.new_end_point.column;
+            inj.start_point.row = inj.start_point.row - ed.old_end_point.row + ed.new_end_point.row;
+            inj.end_row = inj.end_row - ed.old_end_point.row + ed.new_end_point.row;
+            inj.start_byte = inj.start_byte - ed.old_end_byte + ed.new_end_byte;
+            inj.end_byte = inj.end_byte - ed.old_end_byte + ed.new_end_byte;
+            index += 1;
+        } else {
+            inj.deinit(self.allocator);
+            _ = self.injection_list.orderedRemove(index);
+        }
+    }
+    for (self.edited_ranges.items) |*range| {
+        if (range.end < ed.start_byte) continue;
+        if (range.start > ed.old_end_byte) {
+            range.start = range.start - ed.old_end_byte + ed.new_end_byte;
+            range.end = range.end - ed.old_end_byte + ed.new_end_byte;
+        } else {
+            range.start = @min(range.start, ed.start_byte);
+            range.end = @max(range.end, ed.old_end_byte) - ed.old_end_byte + ed.new_end_byte;
+        }
+    }
+    self.edited_ranges.append(self.allocator, .{ .start = ed.start_byte, .end = ed.new_end_byte }) catch {
+        self.injections_state = .stale;
+    };
 }
 
 pub fn refresh_from_buffer(self: *Self, buffer: anytype, metrics: anytype) !void {
@@ -184,17 +234,63 @@ pub fn refresh_from_string(self: *Self, content: [:0]const u8) !void {
     self.content = null;
     const content_copy = try self.allocator.dupe(u8, content);
     self.content = content_copy;
-    try self.refresh_injections(content);
+    try self.update_injections(old_tree, content);
+}
+
+fn update_injections(self: *Self, old_tree: ?*treez.Tree, content: []const u8) !void {
+    const old = old_tree orelse return self.refresh_injections(content);
+    const tree = self.tree orelse return self.refresh_injections(content);
+    if (self.injections_state == .stale or self.injections == null) return self.refresh_injections(content);
+    errdefer self.injections_state = .stale;
+
+    const changed = tree_changed_ranges(old, tree);
+    defer free_changed_ranges(changed);
+    try self.edited_ranges.ensureUnusedCapacity(self.allocator, changed.len);
+    for (changed) |range| self.edited_ranges.appendAssumeCapacity(.{ .start = range.start_byte, .end = range.end_byte });
+
+    for (self.edited_ranges.items) |range_| {
+        const range = whole_lines(content, range_);
+        var index: usize = 0;
+        while (index < self.injection_list.items.len) {
+            const inj = &self.injection_list.items[index];
+            if (range.touches(inj.start_byte, inj.end_byte)) {
+                inj.deinit(self.allocator);
+                _ = self.injection_list.orderedRemove(index);
+            } else index += 1;
+        }
+        try self.add_injections(content, range);
+    }
+    self.edited_ranges.clearRetainingCapacity();
+}
+
+fn tree_changed_ranges(old: *treez.Tree, new: *treez.Tree) []const Range {
+    return if (build_options.use_tree_sitter) treez.Tree.getChangedRanges(old, new) else &.{};
+}
+
+fn free_changed_ranges(ranges: []const Range) void {
+    if (build_options.use_tree_sitter and ranges.len > 0) std.c.free(@constCast(ranges.ptr));
+}
+
+fn whole_lines(content: []const u8, range: ByteRange) ByteRange {
+    var start: usize = @min(range.start, content.len);
+    var end: usize = @min(@max(range.end, range.start), content.len);
+    for (0..2) |_| start = if (std.mem.lastIndexOfScalar(u8, content[0..start -| 1], '\n')) |eol| eol + 1 else 0;
+    for (0..2) |_| end = if (std.mem.indexOfScalarPos(u8, content, end, '\n')) |eol| eol + 1 else content.len;
+    return .{ .start = @intCast(start), .end = @intCast(end) };
 }
 
 pub fn refresh_injections(self: *Self, content: []const u8) !void {
     self.clear_injections();
+    return self.add_injections(content, null);
+}
 
+fn add_injections(self: *Self, content: []const u8, range: ?ByteRange) !void {
     const injections_query = self.injections orelse return;
     const tree = self.tree orelse return;
 
     const cursor = try Query.Cursor.create();
     defer cursor.destroy();
+    if (build_options.use_tree_sitter) if (range) |range_| cursor.setByteRange(range_.start, range_.end);
     cursor.execute(injections_query, tree.getRootNode());
 
     while (cursor.nextMatch()) |match| {
@@ -226,6 +322,16 @@ pub fn refresh_injections(self: *Self, content: []const u8) !void {
         const start_byte = crange.start_byte;
         const end_byte = crange.end_byte;
         if (start_byte >= end_byte or end_byte > content.len) continue;
+        if (range != null) {
+            const known = for (self.injection_list.items, 0..) |*inj, index| {
+                if (inj.start_byte == start_byte and inj.end_byte == end_byte) break index;
+            } else null;
+            if (known) |index| {
+                if (std.mem.eql(u8, self.injection_list.items[index].lang_name, lang_name)) continue;
+                self.injection_list.items[index].deinit(self.allocator);
+                _ = self.injection_list.orderedRemove(index);
+            }
+        }
 
         const lang_name_owned = try self.allocator.dupe(u8, lang_name);
         errdefer self.allocator.free(lang_name_owned);
@@ -788,4 +894,93 @@ test "get_pattern_priority reads #set! priority from the yaml query" {
         }
     }
     try std.testing.expect(seen_99);
+}
+
+const TestInjection = struct { start_byte: u32, end_byte: u32, start_point: Point, end_row: u32, lang: []const u8 };
+
+fn test_injections(allocator: std.mem.Allocator, syn: *const Self) ![]TestInjection {
+    const list = try allocator.alloc(TestInjection, syn.injection_list.items.len);
+    for (list, syn.injection_list.items) |*item, inj| item.* = .{
+        .start_byte = inj.start_byte,
+        .end_byte = inj.end_byte,
+        .start_point = inj.start_point,
+        .end_row = inj.end_row,
+        .lang = inj.lang_name,
+    };
+    std.mem.sort(TestInjection, list, {}, struct {
+        fn less(_: void, a: TestInjection, b: TestInjection) bool {
+            return if (a.start_byte != b.start_byte) a.start_byte < b.start_byte else a.end_byte < b.end_byte;
+        }
+    }.less);
+    return list;
+}
+
+fn test_point(text: []const u8, offset: usize) Point {
+    const row = std.mem.count(u8, text[0..offset], "\n");
+    const line_begin = if (std.mem.lastIndexOfScalar(u8, text[0..offset], '\n')) |eol| eol + 1 else 0;
+    return .{ .row = @intCast(row), .column = @intCast(offset - line_begin) };
+}
+
+test "injections after incremental parses equal the injections of a full parse" {
+    if (!build_options.use_tree_sitter) return error.SkipZigTest;
+    const io = std.testing.io;
+    const gpa = std.testing.allocator;
+    const file_type = FileType.get_by_name_static("markdown") orelse return error.SkipZigTest;
+    const query_cache = try QueryCache.create(io, gpa, .{});
+    defer query_cache.deinit();
+    const incremental = try create(file_type, gpa, query_cache);
+    defer incremental.destroy();
+
+    var text: std.ArrayList(u8) = .empty;
+    defer text.deinit(gpa);
+    for (0..12) |i| try text.print(gpa, "# Title {d}\n\nSome *text* with `code` here.\n\n```zig\nconst a{d} = {d};\n```\n\n```json\n{{\"k\": {d}}}\n```\n\n", .{ i, i, i, i });
+    try text.append(gpa, 0);
+    try incremental.refresh_full(text.items[0 .. text.items.len - 1]);
+    try std.testing.expect(incremental.injection_list.items.len > 12);
+
+    const pieces = [_][]const u8{ "x", "\n", "```", "```zig\n", "zig", "json", " ", "\n\n", "`", "# ", "*", "const b = 1;\n" };
+    var prng: std.Random.DefaultPrng = .init(0x5eed);
+    const random = prng.random();
+    for (0..400) |round| {
+        // one to three edits before the next parse, the last one first, as the editor sends them
+        var limit: usize = text.items.len - 1;
+        for (0..random.intRangeAtMost(usize, 1, 3)) |_| {
+            if (limit == 0) break;
+            const start = random.uintLessThan(usize, limit);
+            const old_end = @min(limit, start + if (random.boolean()) random.uintLessThan(usize, 12) else 0);
+            const new_text = if (random.uintLessThan(u8, 4) == 0) "" else pieces[random.uintLessThan(usize, pieces.len)];
+            const start_point = test_point(text.items, start);
+            const old_end_point = test_point(text.items, old_end);
+            try text.replaceRange(gpa, start, old_end - start, new_text);
+            incremental.edit(.{
+                .start_byte = @intCast(start),
+                .old_end_byte = @intCast(old_end),
+                .new_end_byte = @intCast(start + new_text.len),
+                .start_point = start_point,
+                .old_end_point = old_end_point,
+                .new_end_point = test_point(text.items, start + new_text.len),
+            });
+            limit = start;
+        }
+        const content = text.items[0 .. text.items.len - 1 :0];
+        try incremental.refresh_from_string(content);
+
+        const full = try create(file_type, gpa, query_cache);
+        defer full.destroy();
+        try full.refresh_full(content);
+        const expected = try test_injections(gpa, full);
+        defer gpa.free(expected);
+        const actual = try test_injections(gpa, incremental);
+        defer gpa.free(actual);
+        errdefer std.debug.print("round {d}: expected {d} injections, found {d}\n", .{ round, expected.len, actual.len });
+        try std.testing.expectEqual(expected.len, actual.len);
+        for (expected, actual) |e, a| {
+            try std.testing.expectEqual(e.start_byte, a.start_byte);
+            try std.testing.expectEqual(e.end_byte, a.end_byte);
+            try std.testing.expectEqual(e.start_point.row, a.start_point.row);
+            try std.testing.expectEqual(e.start_point.column, a.start_point.column);
+            try std.testing.expectEqual(e.end_row, a.end_row);
+            try std.testing.expectEqualStrings(e.lang, a.lang);
+        }
+    }
 }
