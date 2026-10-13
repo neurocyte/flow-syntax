@@ -76,7 +76,9 @@ pub fn deinit(self: *Self) void {
     self.release_ref_unlocked_and_maybe_destroy();
 }
 
-fn add_ref_locked(self: *Self) void {
+fn add_ref(self: *Self) void {
+    if (self.mutex) |*mtx| mtx.lockUncancelable(self.io);
+    defer if (self.mutex) |*mtx| mtx.unlock(self.io);
     std.debug.assert(self.ref_count > 0);
     self.ref_count += 1;
 }
@@ -174,7 +176,7 @@ fn ReturnType(comptime query_type: QueryType) type {
 
 pub fn get(self: *Self, file_type: FileType, comptime query_type: QueryType) Error!ReturnType(query_type) {
     const query = try self.get_cached_query(try self.get_cache_entry(file_type, query_type));
-    if (query != null) self.add_ref_locked();
+    if (query != null) self.add_ref();
     return switch (@typeInfo(ReturnType(query_type))) {
         .optional => query,
         else => query.?,
