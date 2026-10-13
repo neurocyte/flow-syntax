@@ -1014,3 +1014,14 @@ test "shared query cache with a lock" {
     try std.testing.expect(!failed.load(.acquire));
     try std.testing.expectEqual(1, query_cache.ref_count);
 }
+
+test "pre_load build test" {
+    const io = std.testing.io;
+    const gpa = std.testing.allocator;
+
+    const query_cache = try QueryCache.create(io, gpa, .{});
+    defer query_cache.deinit();
+    try query_cache.pre_load("zig");
+    try query_cache.pre_load("no such language");
+    try std.testing.expectEqual(1, query_cache.ref_count);
+}
