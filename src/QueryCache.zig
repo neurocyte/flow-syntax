@@ -76,7 +76,9 @@ pub fn deinit(self: *Self) void {
     self.release_ref_unlocked_and_maybe_destroy();
 }
 
-fn add_ref_locked(self: *Self) void {
+fn add_ref(self: *Self) void {
+    if (self.mutex) |*mtx| mtx.lockUncancelable(self.io);
+    defer if (self.mutex) |*mtx| mtx.unlock(self.io);
     std.debug.assert(self.ref_count > 0);
     self.ref_count += 1;
 }
@@ -153,12 +155,12 @@ fn get_cached_query(self: *Self, entry: *CacheEntry) Error!?*Query {
     };
 }
 
-fn pre_load_internal(self: *Self, file_type: *const FileType, comptime query_type: QueryType) Error!void {
+fn pre_load_internal(self: *Self, file_type: FileType, comptime query_type: QueryType) Error!void {
     _ = try self.get_cached_query(try self.get_cache_entry(file_type, query_type));
 }
 
 pub fn pre_load(self: *Self, lang_name: []const u8) Error!void {
-    const file_type = FileType.get_by_name(lang_name) orelse return;
+    const file_type = FileType.get_by_name_static(lang_name) orelse return;
     _ = try self.pre_load_internal(file_type, .highlights);
     _ = try self.pre_load_internal(file_type, .errors);
     _ = try self.pre_load_internal(file_type, .injections);
@@ -174,7 +176,7 @@ fn ReturnType(comptime query_type: QueryType) type {
 
 pub fn get(self: *Self, file_type: FileType, comptime query_type: QueryType) Error!ReturnType(query_type) {
     const query = try self.get_cached_query(try self.get_cache_entry(file_type, query_type));
-    if (query != null) self.add_ref_locked();
+    if (query != null) self.add_ref();
     return switch (@typeInfo(ReturnType(query_type))) {
         .optional => query,
         else => query.?,

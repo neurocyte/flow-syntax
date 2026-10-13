@@ -984,3 +984,44 @@ test "injections after incremental parses equal the injections of a full parse" 
         }
     }
 }
+
+test "shared query cache with a lock" {
+    const io = std.testing.io;
+    const gpa = std.testing.allocator;
+
+    const query_cache = try QueryCache.create(io, gpa, .{ .lock = true });
+    defer query_cache.deinit();
+
+    const worker = struct {
+        fn run(cache: *QueryCache, failed: *std.atomic.Value(bool)) void {
+            const names = [_][]const u8{ "zig", "markdown", "yaml", "c", "json" };
+            for (0..200) |i| {
+                const file_type = FileType.get_by_name_static(names[i % names.len]) orelse continue;
+                const syn = create(file_type, std.testing.allocator, cache) catch {
+                    failed.store(true, .release);
+                    return;
+                };
+                defer syn.destroy();
+                syn.refresh_full("a: [1, 2]\n") catch failed.store(true, .release);
+            }
+        }
+    };
+
+    var failed: std.atomic.Value(bool) = .init(false);
+    var threads: [8]std.Thread = undefined;
+    for (&threads) |*thread| thread.* = try std.Thread.spawn(.{}, worker.run, .{ query_cache, &failed });
+    for (threads) |thread| thread.join();
+    try std.testing.expect(!failed.load(.acquire));
+    try std.testing.expectEqual(1, query_cache.ref_count);
+}
+
+test "pre_load build test" {
+    const io = std.testing.io;
+    const gpa = std.testing.allocator;
+
+    const query_cache = try QueryCache.create(io, gpa, .{});
+    defer query_cache.deinit();
+    try query_cache.pre_load("zig");
+    try query_cache.pre_load("no such language");
+    try std.testing.expectEqual(1, query_cache.ref_count);
+}
