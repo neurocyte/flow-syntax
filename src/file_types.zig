@@ -685,6 +685,15 @@ pub const powershell = .{
     .comment = "#",
 };
 
+pub const prolog = .{
+    .description = "Prolog",
+    .color = 0xe4b854,
+    .icon = "",
+    .extensions = .{ "pro", "prolog" },
+    .comment = "%",
+    .highlights = "tree-sitter-prolog/tree-sitter-prolog/queries/highlights.scm",
+};
+
 pub const props = .{
     .description = "MSBuild Properties",
     .icon = "",
