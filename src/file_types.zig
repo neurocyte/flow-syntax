@@ -689,6 +689,16 @@ pub const @"ssh-config" = .{
     .comment = "#",
 };
 
+pub const svg = .{
+    .description = "SVG",
+    .color = 0xffb13b,
+    .icon = "󰜡",
+    .extensions = .{"svg"},
+    .comment = "<!--",
+    .highlights = "tree-sitter-xml/queries/xml/highlights.scm",
+    .parser = xml.parser,
+};
+
 pub const swift = .{
     .description = "Swift",
     .color = 0xf05138,
