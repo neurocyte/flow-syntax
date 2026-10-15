@@ -160,6 +160,7 @@ pub const devicetree = .{
     .description = "Device Tree",
     .extensions = .{ "dts", "dtsi", "dtso", "overlay" },
     .comment = "//",
+    .highlights = "nvim-treesitter/runtime/queries/devicetree/highlights.scm",
     .injections = "nvim-treesitter/runtime/queries/devicetree/injections.scm",
 };
 
