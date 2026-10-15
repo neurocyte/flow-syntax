@@ -733,6 +733,14 @@ pub const systemverilog = .{
     .injections = "nvim-treesitter/runtime/queries/systemverilog/injections.scm",
 };
 
+pub const thrift = .{
+    .description = "Thrift",
+    .extensions = .{"thrift"},
+    .comment = "//",
+    .highlights = "nvim-treesitter/runtime/queries/thrift/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/thrift/injections.scm",
+};
+
 pub const toml = .{
     .description = "TOML",
     .extensions = .{ "toml", "ini" },
