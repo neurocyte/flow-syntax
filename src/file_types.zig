@@ -704,6 +704,14 @@ pub const regex = .{
     .comment = "#",
 };
 
+pub const roc = .{
+    .description = "Roc",
+    .color = 0x7c38f5,
+    .extensions = .{"roc"},
+    .comment = "#",
+    .injections = "tree-sitter-roc/queries/injections.scm",
+};
+
 pub const rpmbash = .{
     .description = "RPM spec (bash)",
     .color = 0xff0000,
