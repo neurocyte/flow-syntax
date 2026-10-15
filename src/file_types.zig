@@ -156,6 +156,13 @@ pub const d = .{
     .injections = "queries/d/injections.scm",
 };
 
+pub const devicetree = .{
+    .description = "Device Tree",
+    .extensions = .{ "dts", "dtsi", "dtso", "overlay" },
+    .comment = "//",
+    .injections = "nvim-treesitter/runtime/queries/devicetree/injections.scm",
+};
+
 pub const diff = .{
     .description = "Diff",
     .extensions = .{ "diff", "patch", "rej" },
