@@ -259,6 +259,16 @@ pub const gdscript = .{
     .injections = "nvim-treesitter/runtime/queries/gdscript/injections.scm",
 };
 
+pub const gdshader = .{
+    .description = "Godot Shader",
+    .color = 0x447da9,
+    .icon = "",
+    .extensions = .{ "gdshader", "gdshaderinc" },
+    .comment = "//",
+    .highlights = "nvim-treesitter/runtime/queries/gdshader/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/gdshader/injections.scm",
+};
+
 pub const @"git-rebase" = .{
     .description = "Git (rebase)",
     .color = 0xf34f29,
@@ -299,6 +309,16 @@ pub const go = .{
     .icon = "󰟓",
     .extensions = .{"go"},
     .comment = "//",
+};
+
+pub const @"godot-resource" = .{
+    .description = "Godot Resource",
+    .color = 0x447da9,
+    .icon = "",
+    .extensions = .{ "tres", "tscn", "godot" },
+    .comment = ";",
+    .highlights = "nvim-treesitter/runtime/queries/godot_resource/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/godot_resource/injections.scm",
 };
 
 pub const hare = .{
