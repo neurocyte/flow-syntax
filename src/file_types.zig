@@ -486,7 +486,7 @@ pub const markdown = .{
     .description = "Markdown",
     .color = 0x000000,
     .icon = "󰍔",
-    .extensions = .{ "md", "smd" },
+    .extensions = .{"md"},
     .comment = "<!--",
     .highlights = "tree-sitter-markdown/tree-sitter-markdown/queries/highlights.scm",
     .injections = "tree-sitter-markdown/tree-sitter-markdown/queries/injections.scm",
@@ -768,6 +768,26 @@ pub const @"ssh-config" = .{
     .description = "SSH config",
     .extensions = .{".ssh/config"},
     .comment = "#",
+};
+
+pub const supermd = .{
+    .description = "SuperMD",
+    .color = 0xf7a41d,
+    .icon = "󰍔",
+    .extensions = .{"smd"},
+    .comment = "<!--",
+    .highlights = "tree-sitter-supermd/tree-sitter/supermd/queries/highlights.scm",
+    .injections = "tree-sitter-supermd/tree-sitter/supermd/queries/injections.scm",
+};
+
+pub const supermd_inline = .{
+    .description = "SuperMD (inline)",
+    .color = 0xf7a41d,
+    .icon = "󰍔",
+    .extensions = .{},
+    .comment = "<!--",
+    .highlights = "tree-sitter-supermd/tree-sitter/supermd-inline/queries/highlights.scm",
+    .injections = "tree-sitter-supermd/tree-sitter/supermd-inline/queries/injections.scm",
 };
 
 pub const svelte = .{

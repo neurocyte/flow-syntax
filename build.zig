@@ -117,6 +117,8 @@ pub fn build(b: *std.Build) void {
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-scala/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-scheme/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-superhtml/tree-sitter-superhtml/queries/highlights.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-supermd/tree-sitter/supermd/queries/highlights.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-supermd/tree-sitter/supermd-inline/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-sql/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-swift/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-toml/queries/highlights.scm");
@@ -193,6 +195,8 @@ pub fn build(b: *std.Build) void {
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-rpmspec/rpmspec/queries/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-rust/queries/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-superhtml/tree-sitter-superhtml/queries/injections.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-supermd/tree-sitter/supermd/queries/injections.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-supermd/tree-sitter/supermd-inline/queries/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-swift/queries/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-typst/queries/typst/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-uxntal/queries/injections.scm");
