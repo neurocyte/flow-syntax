@@ -94,6 +94,7 @@ pub fn build(b: *std.Build) void {
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-make/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-markdown/tree-sitter-markdown/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-markdown/tree-sitter-markdown-inline/queries/highlights.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-mojo/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-nasm/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-nickel/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-nim/queries/highlights.scm");
@@ -190,6 +191,7 @@ pub fn build(b: *std.Build) void {
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-lua/queries/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-markdown/tree-sitter-markdown-inline/queries/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-markdown/tree-sitter-markdown/queries/injections.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-mojo/queries/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-nasm/queries/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-nickel/queries/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-nix/queries/injections.scm");

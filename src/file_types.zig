@@ -539,6 +539,15 @@ pub const @"markdown-inline" = .{
     .injections = "tree-sitter-markdown/tree-sitter-markdown-inline/queries/injections.scm",
 };
 
+pub const mojo = .{
+    .description = "Mojo",
+    .color = 0xff4c1f,
+    .icon = "",
+    .extensions = .{ "mojo", "🔥" },
+    .comment = "#",
+    .injections = "tree-sitter-mojo/queries/injections.scm",
+};
+
 pub const nasm = .{
     .description = "Assembly (nasm)",
     .icon = "",
