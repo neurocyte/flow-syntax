@@ -145,7 +145,7 @@ pub const queries = std.StaticStringMap(FileTypeQueries).initComptime(load_queri
 
 fn load_queries() []const struct { []const u8, FileTypeQueries } {
     if (!build_options.use_tree_sitter) return &.{};
-    @setEvalBranchQuota(32000);
+    @setEvalBranchQuota(64000);
     const queries_cb = @embedFile("syntax_bin_queries");
     var iter: []const u8 = queries_cb;
     var len = cbor.decodeMapHeader(&iter) catch |e| {

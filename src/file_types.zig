@@ -849,11 +849,25 @@ pub const toml = .{
     .parser = @import("file_type.zig").Parser("toml"),
 };
 
+pub const tsx = .{
+    .description = "TypeScript (TSX)",
+    .color = 0x1354bf,
+    .icon = "",
+    .extensions = .{"tsx"},
+    .comment = "//",
+    .highlights_list = .{
+        "tree-sitter-javascript/queries/highlights.scm",
+        "tree-sitter-javascript/queries/highlights-jsx.scm",
+        "tree-sitter-typescript/queries/highlights.scm",
+    },
+    .injections = "tree-sitter-javascript/queries/injections.scm",
+};
+
 pub const typescript = .{
     .description = "TypeScript",
     .color = 0x007acc,
     .icon = "󰛦",
-    .extensions = .{ "ts", "tsx" },
+    .extensions = .{"ts"},
     .comment = "//",
     .highlights_list = .{
         "tree-sitter-javascript/queries/highlights.scm",
