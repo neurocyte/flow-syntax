@@ -87,6 +87,14 @@ pub const @"c-sharp" = .{
     .comment = "//",
 };
 
+pub const capnp = .{
+    .description = "Cap'n Proto",
+    .extensions = .{"capnp"},
+    .comment = "#",
+    .highlights = "nvim-treesitter/runtime/queries/capnp/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/capnp/injections.scm",
+};
+
 pub const comment = .{
     .description = "Comment tags",
     .icon = "#",
