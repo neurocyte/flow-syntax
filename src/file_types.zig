@@ -821,10 +821,6 @@ pub const wat = .{
     .icon = "",
     .extensions = .{"wat"},
     .comment = ";;",
-    .highlights_list = .{
-        "tree-sitter-wat/queries/highlights.scm",
-        "tree-sitter-wat/queries/tags.scm",
-    },
 };
 
 pub const wgsl = .{
