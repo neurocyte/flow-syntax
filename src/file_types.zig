@@ -364,6 +364,15 @@ pub const hurl = .{
     .injections = "nvim-treesitter/runtime/queries/hurl/injections.scm",
 };
 
+pub const idris = .{
+    .description = "Idris",
+    .color = 0xb30000,
+    .extensions = .{"idr"},
+    .comment = "--",
+    .highlights = "nvim-treesitter/runtime/queries/idris/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/idris/injections.scm",
+};
+
 pub const ink = .{
     .description = "Ink",
     .icon = "i",
