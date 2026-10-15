@@ -728,6 +728,23 @@ pub const @"ssh-config" = .{
     .comment = "#",
 };
 
+pub const svelte = .{
+    .description = "Svelte",
+    .color = 0xff3e00,
+    .icon = "",
+    .extensions = .{"svelte"},
+    .comment = "<!--",
+    .highlights_list = .{
+        "nvim-treesitter/runtime/queries/html_tags/highlights.scm",
+        "nvim-treesitter/runtime/queries/html/highlights.scm",
+        "nvim-treesitter/runtime/queries/svelte/highlights.scm",
+    },
+    .injections_list = .{
+        "nvim-treesitter/runtime/queries/html_tags/injections.scm",
+        "nvim-treesitter/runtime/queries/svelte/injections.scm",
+    },
+};
+
 pub const svg = .{
     .description = "SVG",
     .color = 0xffb13b,
