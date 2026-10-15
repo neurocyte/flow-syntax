@@ -664,6 +664,18 @@ pub const scheme = .{
     .comment = ";",
 };
 
+pub const scss = .{
+    .description = "SCSS",
+    .color = 0xc6538c,
+    .icon = "",
+    .extensions = .{"scss"},
+    .comment = "//",
+    .highlights_list = .{
+        "nvim-treesitter/runtime/queries/css/highlights.scm",
+        "nvim-treesitter/runtime/queries/scss/highlights.scm",
+    },
+};
+
 pub const sql = .{
     .description = "SQL",
     .icon = "󰆼",
