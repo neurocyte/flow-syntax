@@ -177,6 +177,16 @@ pub const dockerfile = .{
     .comment = "#",
 };
 
+pub const dot = .{
+    .description = "Graphviz DOT",
+    .color = 0x30638e,
+    .icon = "󱁉",
+    .extensions = .{ "dot", "gv" },
+    .comment = "//",
+    .highlights = "nvim-treesitter/runtime/queries/dot/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/dot/injections.scm",
+};
+
 pub const dtd = .{
     .description = "DTD",
     .icon = "󰗀",
