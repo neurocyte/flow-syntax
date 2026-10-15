@@ -588,6 +588,14 @@ pub const org = .{
     .comment = "#",
 };
 
+pub const pascal = .{
+    .description = "Pascal",
+    .extensions = .{ "pas", "pp", "dpr", "lpr", "dpk" },
+    .comment = "//",
+    .highlights = "nvim-treesitter/runtime/queries/pascal/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/pascal/injections.scm",
+};
+
 pub const perl = .{
     .description = "Perl",
     .color = 0x005c81,

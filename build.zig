@@ -67,6 +67,7 @@ pub fn build(b: *std.Build) void {
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/html_tags/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/html/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/svelte/highlights.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/pascal/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-fsharp/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-haskell/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-hare/queries/highlights.scm");
@@ -160,6 +161,7 @@ pub fn build(b: *std.Build) void {
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/fortran/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/html_tags/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/svelte/injections.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/pascal/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-fsharp/queries/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-gitcommit/queries/injections.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-hare/queries/injections.scm");
