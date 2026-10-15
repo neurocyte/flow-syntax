@@ -130,13 +130,13 @@ fn load_file_types(comptime Namespace: type) []const FileType {
                     .highlights = if (@hasField(@TypeOf(args), "highlights"))
                         @embedFile(args.highlights)
                     else if (@hasField(@TypeOf(args), "highlights_list"))
-                        @embedFile(args.highlights_list[0]) ++ "\n" ++ @embedFile(args.highlights_list[1])
+                        embed_list(args.highlights_list)
                     else
                         @embedFile("tree-sitter-" ++ lang ++ "/queries/highlights.scm"),
                     .injections = if (@hasField(@TypeOf(args), "injections"))
                         @embedFile(args.injections)
                     else if (@hasField(@TypeOf(args), "injections_list"))
-                        @embedFile(args.injections_list[0]) ++ "\n" ++ @embedFile(args.injections_list[1])
+                        embed_list(args.injections_list)
                     else
                         null,
                 };
@@ -147,6 +147,14 @@ fn load_file_types(comptime Namespace: type) []const FileType {
         },
         else => @compileError("expected tuple or struct type"),
     };
+}
+
+fn embed_list(comptime list: anytype) [:0]const u8 {
+    comptime {
+        var result: [:0]const u8 = @embedFile(list[0]);
+        for (1..list.len) |i| result = result ++ "\n" ++ @embedFile(list[i]);
+        return result;
+    }
 }
 
 fn get_parser(comptime lang: []const u8) LangFn {
