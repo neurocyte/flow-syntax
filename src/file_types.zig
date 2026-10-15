@@ -172,16 +172,6 @@ pub const elixir = .{
     .injections = "nvim-treesitter/runtime/queries/elixir/injections.scm",
 };
 
-pub const heex = .{
-    .description = "HEEx",
-    .color = 0x4e2a8e,
-    .icon = "",
-    .extensions = .{"heex"},
-    .comment = "<!--",
-    .highlights = "nvim-treesitter/runtime/queries/heex/highlights.scm",
-    .injections = "nvim-treesitter/runtime/queries/heex/injections.scm",
-};
-
 pub const elm = .{
     .description = "Elm",
     .color = 0x0e76ad,
@@ -281,6 +271,16 @@ pub const hcl = .{
     .comment = "#",
     .highlights = "nvim-treesitter/runtime/queries/hcl/highlights.scm",
     .injections = "nvim-treesitter/runtime/queries/hcl/injections.scm",
+};
+
+pub const heex = .{
+    .description = "HEEx",
+    .color = 0x4e2a8e,
+    .icon = "",
+    .extensions = .{"heex"},
+    .comment = "<%!--",
+    .highlights = "nvim-treesitter/runtime/queries/heex/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/heex/injections.scm",
 };
 
 pub const html = .{
