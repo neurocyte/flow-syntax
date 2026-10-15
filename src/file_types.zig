@@ -16,6 +16,22 @@ pub const @"asm" = .{
     .injections = "tree-sitter-asm/queries/asm/injections.scm",
 };
 
+pub const asciidoc = .{
+    .description = "AsciiDoc",
+    .extensions = .{ "adoc", "asciidoc", "asc" },
+    .comment = "//",
+    .highlights = "tree-sitter-asciidoc/tree-sitter-asciidoc/queries/highlights.scm",
+    .injections = "tree-sitter-asciidoc/tree-sitter-asciidoc/queries/injections.scm",
+};
+
+pub const asciidoc_inline = .{
+    .description = "AsciiDoc (inline)",
+    .extensions = .{},
+    .comment = "//",
+    .highlights = "tree-sitter-asciidoc/tree-sitter-asciidoc_inline/queries/highlights.scm",
+    .injections = "tree-sitter-asciidoc/tree-sitter-asciidoc_inline/queries/injections.scm",
+};
+
 pub const astro = .{
     .description = "Astro",
     .icon = "",
