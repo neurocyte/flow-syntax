@@ -788,6 +788,16 @@ pub const vue = .{
     },
 };
 
+pub const wgsl = .{
+    .description = "WGSL",
+    .color = 0x005a9c,
+    .icon = "",
+    .extensions = .{"wgsl"},
+    .comment = "//",
+    .highlights = "nvim-treesitter/runtime/queries/wgsl/highlights.scm",
+    .injections = "nvim-treesitter/runtime/queries/wgsl/injections.scm",
+};
+
 pub const xml = .{
     .description = "XML",
     .icon = "󰗀",
