@@ -862,6 +862,14 @@ pub const wgsl = .{
     .injections = "nvim-treesitter/runtime/queries/wgsl/injections.scm",
 };
 
+pub const wikitext = .{
+    .description = "MediaWiki",
+    .icon = "󰖬",
+    .extensions = .{ "wikitext", "mediawiki", "wikimedia" },
+    .comment = "<!--",
+    .injections = "tree-sitter-wikitext/queries/injections.scm",
+};
+
 pub const xml = .{
     .description = "XML",
     .icon = "󰗀",
