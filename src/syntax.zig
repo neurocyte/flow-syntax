@@ -362,6 +362,7 @@ fn normalize_lang_name(name: []const u8) []const u8 {
         .{ "kt", "kotlin" },
         .{ "ts", "typescript" },
         .{ "py", "python" },
+        .{ "python3", "python" },
         .{ "rb", "ruby" },
         .{ "sh", "bash" },
         .{ "shell", "bash" },

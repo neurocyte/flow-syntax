@@ -41,8 +41,9 @@ pub const bash = .{
 
 pub const bibtex = .{
     .description = "BibTeX",
-    .icon = "",
-    .extensions = .{ "bib" },
+    .color = 0xcbcb41,
+    .icon = "󱉟",
+    .extensions = .{"bib"},
     .comment = "%",
 };
 
@@ -348,9 +349,12 @@ pub const julia = .{
 
 pub const just = .{
     .description = "Just",
-    .icon = "J",
-    .extensions = .{"Justfile", "justfile"},
+    .color = 0x6d8086,
+    .icon = "",
+    .extensions = .{ "justfile", "Justfile", ".justfile", "just" },
     .comment = "#",
+    .highlights = "tree-sitter-just/queries/just/highlights.scm",
+    .injections = "tree-sitter-just/queries/just/injections.scm",
 };
 
 pub const kdl = .{
