@@ -191,12 +191,13 @@ pub const fish = .{
 
 pub const fortran = .{
     .description = "Fortran",
+    .color = 0x734f96,
     .icon = "",
-    .extensions = .{"f", "for", "f90", "f95", "f03", "F", "F90", "F95", "F03"},
+    .extensions = .{ "f", "for", "f90", "f95", "f03", "f08", "f18", "F", "F90", "F95", "F03", "F08", "F18" },
     .comment = "!",
     .highlights = "nvim-treesitter/runtime/queries/fortran/highlights.scm",
     .injections = "nvim-treesitter/runtime/queries/fortran/injections.scm",
-}
+};
 
 pub const fsharp = .{
     .description = "F#",
