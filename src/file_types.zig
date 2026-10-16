@@ -231,6 +231,15 @@ pub const fish = .{
     .highlights = "tree-sitter-fish/queries/highlights.scm",
 };
 
+pub const @"flow-script" = .{
+    .description = "Flow Control script",
+    .icon = "󰯂",
+    .extensions = .{"flow"},
+    .highlights = fish.highlights,
+    .comment = "#",
+    .parser = fish.parser,
+};
+
 pub const fortran = .{
     .description = "Fortran",
     .color = 0x734f96,
