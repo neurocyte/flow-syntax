@@ -31,15 +31,16 @@ injections: ?*Query,
 tree: ?*treez.Tree = null,
 injection_list: std.ArrayList(Injection) = .empty,
 edited_ranges: std.ArrayList(ByteRange) = .empty,
-injections_state: enum { current, stale } = .current,
+injections_state: enum { current, stale, pending } = .current,
 content: ?[]u8 = null,
 
 const ByteRange = struct {
     start: u32,
     end: u32,
 
-    fn touches(self: ByteRange, start: u32, end: u32) bool {
-        return start <= self.end and end >= self.start;
+    /// half-open, like the query cursor byte range
+    fn overlaps(self: ByteRange, start: u32, end: u32) bool {
+        return start < self.end and end > self.start;
     }
 };
 
@@ -240,7 +241,7 @@ pub fn refresh_from_string(self: *Self, content: [:0]const u8) !void {
 fn update_injections(self: *Self, old_tree: ?*treez.Tree, content: []const u8) !void {
     const old = old_tree orelse return self.refresh_injections(content);
     const tree = self.tree orelse return self.refresh_injections(content);
-    if (self.injections_state == .stale or self.injections == null) return self.refresh_injections(content);
+    if (self.injections_state != .current or self.injections == null) return self.refresh_injections(content);
     errdefer self.injections_state = .stale;
 
     const changed = tree_changed_ranges(old, tree);
@@ -253,7 +254,7 @@ fn update_injections(self: *Self, old_tree: ?*treez.Tree, content: []const u8) !
         var index: usize = 0;
         while (index < self.injection_list.items.len) {
             const inj = &self.injection_list.items[index];
-            if (range.touches(inj.start_byte, inj.end_byte)) {
+            if (range.overlaps(inj.start_byte, inj.end_byte)) {
                 inj.deinit(self.allocator);
                 _ = self.injection_list.orderedRemove(index);
             } else index += 1;
@@ -372,6 +373,7 @@ fn normalize_lang_name(name: []const u8) []const u8 {
         .{ "csharp", "c-sharp" },
         .{ "yml", "yaml" },
         .{ "md", "markdown" },
+        .{ "markdown_inline", "markdown-inline" },
         .{ "rs", "rust" },
     };
     inline for (aliases) |alias| {
@@ -713,79 +715,111 @@ fn match_applies(
     return validator(ctx, .{ .bytes = predicates.writer.buffered() });
 }
 
-pub fn render(self: *Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), comptime validator: Validator(@TypeOf(ctx)), range: ?Range) !void {
+pub fn render(self: *Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), comptime validator: Validator(@TypeOf(ctx)), range: ?Range, max_injection_depth: u8) !void {
     try self.render_highlights_only(ctx, cb, validator, range);
+    if (max_injection_depth == 0 or self.content == null) return;
 
-    const content = self.content orelse return;
-    for (self.injection_list.items) |*inj| {
-        if (range) |r| {
+    // Wrap the context to translate local ranges to document coordinates
+    const InjCtx = struct {
+        parent_ctx: @TypeOf(ctx),
+        offset: Offset,
+        depth: u8,
+
+        fn translated_cb(
+            self_: *const @This(),
+            child_sel: Range,
+            scope: []const u8,
+            id: u32,
+            capture_idx: usize,
+            priority: i32,
+            pattern_index: u32,
+            node: *const Node,
+        ) error{Stop}!void {
+            const bias = @as(u32, self_.depth) * injection_pattern_bias;
+            try cb(self_.parent_ctx, self_.offset.apply(child_sel), scope, id, capture_idx, priority, pattern_index +| bias, node);
+        }
+
+        fn translated_validator(self_: *const @This(), predicates: cbor.Raw) bool {
+            return validator(self_.parent_ctx, predicates);
+        }
+    };
+
+    const Pending = struct {
+        syntax: *Self,
+        offset: Offset,
+        range: ?Range,
+        depth: u8,
+    };
+    var pending: std.ArrayList(Pending) = .empty;
+    defer pending.deinit(self.allocator);
+    try pending.append(self.allocator, .{ .syntax = self, .offset = .{}, .range = range, .depth = 1 });
+
+    while (pending.pop()) |host| for (host.syntax.injection_list.items) |*inj| {
+        if (host.range) |r| {
             if (inj.end_row < r.start_point.row) continue;
             if (inj.start_point.row > r.end_point.row) continue;
         }
+        const child = try host.syntax.injection_syntax(inj);
 
-        if (inj.syntax == null) {
-            const child_content = content[inj.start_byte..inj.end_byte];
-            const child = try Self.create(inj.file_type, self.allocator, self.query_cache);
-            errdefer child.destroy();
-            if (child.tree) |t| t.destroy();
-            child.tree = try child.parser.parseString(null, child_content);
-            inj.syntax = child;
-        }
-        const child_syn = inj.syntax.?;
-
-        const child_range: ?Range = if (range) |r| blk: {
-            const child_start_row: u32 = if (r.start_point.row > inj.start_point.row)
-                r.start_point.row - inj.start_point.row
-            else
-                0;
-            const child_end_row: u32 = r.end_point.row - inj.start_point.row;
-            break :blk .{
-                .start_point = .{ .row = child_start_row, .column = 0 },
-                .end_point = .{ .row = child_end_row, .column = 0 },
-                .start_byte = 0,
-                .end_byte = 0,
-            };
+        const child_range: ?Range = if (host.range) |r| .{
+            .start_point = .{ .row = r.start_point.row -| inj.start_point.row, .column = 0 },
+            .end_point = .{ .row = r.end_point.row - inj.start_point.row, .column = 0 },
+            .start_byte = 0,
+            .end_byte = 0,
         } else null;
+        const child_offset = host.offset.compose(inj.start_point, inj.start_byte);
 
-        // Wrap the context to translate local ranges to document coordinates
-        const InjCtx = struct {
-            parent_ctx: @TypeOf(ctx),
-            inj: *const Injection,
+        var inj_ctx: InjCtx = .{ .parent_ctx = ctx, .offset = child_offset, .depth = host.depth };
+        try child.render_highlights_only(&inj_ctx, InjCtx.translated_cb, InjCtx.translated_validator, child_range);
 
-            fn translated_cb(
-                self_: *const @This(),
-                child_sel: Range,
-                scope: []const u8,
-                id: u32,
-                capture_idx: usize,
-                priority: i32,
-                pattern_index: u32,
-                node: *const Node,
-            ) error{Stop}!void {
-                const start_row = child_sel.start_point.row + self_.inj.start_point.row;
-                const end_row = child_sel.end_point.row + self_.inj.start_point.row;
-                const start_col = child_sel.start_point.column +
-                    if (child_sel.start_point.row == 0) self_.inj.start_point.column else 0;
-                const end_col = child_sel.end_point.column +
-                    if (child_sel.end_point.row == 0) self_.inj.start_point.column else 0;
-                const doc_range: Range = .{
-                    .start_point = .{ .row = start_row, .column = start_col },
-                    .end_point = .{ .row = end_row, .column = end_col },
-                    .start_byte = child_sel.start_byte,
-                    .end_byte = child_sel.end_byte,
-                };
-                try cb(self_.parent_ctx, doc_range, scope, id, capture_idx, priority, pattern_index +| injection_pattern_bias, node);
-            }
-
-            fn translated_validator(self_: *const @This(), predicates: cbor.Raw) bool {
-                return validator(self_.parent_ctx, predicates);
-            }
-        };
-
-        var inj_ctx: InjCtx = .{ .parent_ctx = ctx, .inj = inj };
-        try child_syn.render_highlights_only(&inj_ctx, InjCtx.translated_cb, InjCtx.translated_validator, child_range);
-    }
+        if (host.depth >= max_injection_depth) continue;
+        if (child.injections_state == .pending) try child.refresh_injections(child.content orelse "");
+        try pending.append(self.allocator, .{ .syntax = child, .offset = child_offset, .range = child_range, .depth = host.depth + 1 });
+    };
 }
+
+/// Get the syntax of an injection, parsing it on first use. Its own
+/// injections are left .pending until a render needs them.
+fn injection_syntax(self: *Self, inj: *Injection) !*Self {
+    if (inj.syntax) |syn| return syn;
+    const content = self.content orelse return error.NoContent;
+    const child_content = content[inj.start_byte..inj.end_byte];
+    const child = try Self.create(inj.file_type, self.allocator, self.query_cache);
+    errdefer child.destroy();
+    child.tree = try child.parser.parseString(null, child_content);
+    child.content = try self.allocator.dupe(u8, child_content);
+    child.injections_state = .pending;
+    inj.syntax = child;
+    return child;
+}
+
+/// The document position of a child syntax's origin
+const Offset = struct {
+    row: u32 = 0,
+    column: u32 = 0,
+    byte: u32 = 0,
+
+    fn apply_point(self: Offset, p: Point) Point {
+        return .{
+            .row = p.row + self.row,
+            .column = p.column + if (p.row == 0) self.column else 0,
+        };
+    }
+
+    fn apply(self: Offset, r: Range) Range {
+        return .{
+            .start_point = self.apply_point(r.start_point),
+            .end_point = self.apply_point(r.end_point),
+            .start_byte = r.start_byte + self.byte,
+            .end_byte = r.end_byte + self.byte,
+        };
+    }
+
+    fn compose(self: Offset, child_start: Point, child_start_byte: u32) Offset {
+        const p = self.apply_point(child_start);
+        return .{ .row = p.row, .column = p.column, .byte = child_start_byte + self.byte };
+    }
+};
 
 fn render_highlights_only(self: *const Self, ctx: anytype, comptime cb: CallBack(@TypeOf(ctx)), comptime validator: Validator(@TypeOf(ctx)), range: ?Range) !void {
     const cursor = try Query.Cursor.create();
@@ -867,7 +901,7 @@ test "simple build and link test" {
         fn validate(_: void, _: cbor.Raw) bool {
             return true;
         }
-    }.validate, null);
+    }.validate, null, 3);
 }
 
 test "get_pattern_priority reads #set! priority from the yaml query" {
@@ -934,12 +968,12 @@ test "injections after incremental parses equal the injections of a full parse" 
 
     var text: std.ArrayList(u8) = .empty;
     defer text.deinit(gpa);
-    for (0..12) |i| try text.print(gpa, "# Title {d}\n\nSome *text* with `code` here.\n\n```zig\nconst a{d} = {d};\n```\n\n```json\n{{\"k\": {d}}}\n```\n\n", .{ i, i, i, i });
+    for (0..12) |i| try text.print(gpa, "# Title {d}\n\nSome *text* with `code` and <b>html</b> here.\n\n```zig\nconst a{d} = {d};\n```\n\n```json\n{{\"k\": {d}}}\n```\n\n", .{ i, i, i, i });
     try text.append(gpa, 0);
     try incremental.refresh_full(text.items[0 .. text.items.len - 1]);
     try std.testing.expect(incremental.injection_list.items.len > 12);
 
-    const pieces = [_][]const u8{ "x", "\n", "```", "```zig\n", "zig", "json", " ", "\n\n", "`", "# ", "*", "const b = 1;\n" };
+    const pieces = [_][]const u8{ "x", "\n", "```", "```zig\n", "zig", "json", " ", "\n\n", "`", "# ", "*", "const b = 1;\n", "<b>", "</b>" };
     var prng: std.Random.DefaultPrng = .init(0x5eed);
     const random = prng.random();
     for (0..400) |round| {
@@ -983,6 +1017,196 @@ test "injections after incremental parses equal the injections of a full parse" 
             try std.testing.expectEqual(e.end_row, a.end_row);
             try std.testing.expectEqualStrings(e.lang, a.lang);
         }
+
+        const expected_captures = try test_render(gpa, full, 3);
+        defer free_test_captures(gpa, expected_captures);
+        const actual_captures = try test_render(gpa, incremental, 3);
+        defer free_test_captures(gpa, actual_captures);
+        try std.testing.expect(max_test_depth(expected_captures) == 2);
+        try expect_equal_test_captures(expected_captures, actual_captures);
+    }
+}
+
+const TestCapture = struct { start: Point, end: Point, scope: []const u8, depth: u32 };
+
+fn test_render(allocator: std.mem.Allocator, syn: *Self, max_injection_depth: u8) ![]TestCapture {
+    const Collector = struct {
+        allocator: std.mem.Allocator,
+        list: std.ArrayList(TestCapture) = .empty,
+
+        fn cb(self: *@This(), range: Range, scope: []const u8, _: u32, _: usize, _: i32, pattern_index: u32, _: *const Node) error{Stop}!void {
+            self.list.append(self.allocator, .{
+                .start = range.start_point,
+                .end = range.end_point,
+                .scope = scope,
+                .depth = pattern_index / injection_pattern_bias,
+            }) catch return error.Stop;
+        }
+    };
+    var collector: Collector = .{ .allocator = allocator };
+    errdefer collector.list.deinit(allocator);
+    try syn.render(&collector, Collector.cb, SimpleNonRegex(*Collector), null, max_injection_depth);
+    const list = try collector.list.toOwnedSlice(allocator);
+    std.mem.sort(TestCapture, list, {}, struct {
+        fn order_point(a: Point, b: Point) std.math.Order {
+            if (a.row != b.row) return std.math.order(a.row, b.row);
+            return std.math.order(a.column, b.column);
+        }
+        fn less(_: void, a: TestCapture, b: TestCapture) bool {
+            if (order_point(a.start, b.start) != .eq) return order_point(a.start, b.start) == .lt;
+            if (order_point(a.end, b.end) != .eq) return order_point(a.end, b.end) == .lt;
+            if (a.depth != b.depth) return a.depth < b.depth;
+            return std.mem.order(u8, a.scope, b.scope) == .lt;
+        }
+    }.less);
+    return list;
+}
+
+fn free_test_captures(allocator: std.mem.Allocator, captures: []TestCapture) void {
+    allocator.free(captures);
+}
+
+fn max_test_depth(captures: []const TestCapture) u32 {
+    var depth: u32 = 0;
+    for (captures) |c| depth = @max(depth, c.depth);
+    return depth;
+}
+
+fn expect_equal_test_captures(expected: []const TestCapture, actual: []const TestCapture) !void {
+    try std.testing.expectEqual(expected.len, actual.len);
+    for (expected, actual) |e, a| {
+        try std.testing.expectEqual(e.start, a.start);
+        try std.testing.expectEqual(e.end, a.end);
+        try std.testing.expectEqual(e.depth, a.depth);
+        try std.testing.expectEqualStrings(e.scope, a.scope);
+    }
+}
+
+/// The depths at which `scope` is captured over exactly start..end, as a bit set
+fn test_capture_depths(captures: []const TestCapture, scope: []const u8, start: Point, end: Point) u64 {
+    var depths: u64 = 0;
+    for (captures) |c| {
+        if (!std.meta.eql(c.start, start) or !std.meta.eql(c.end, end)) continue;
+        if (!std.mem.eql(u8, c.scope, scope)) continue;
+        depths |= @as(u64, 1) << @intCast(c.depth);
+    }
+    return depths;
+}
+
+test "Offset maps child positions to the document" {
+    const offset: Offset = .{ .row = 2, .column = 4, .byte = 10 };
+    const r = offset.apply(.{
+        .start_point = .{ .row = 0, .column = 1 },
+        .end_point = .{ .row = 1, .column = 1 },
+        .start_byte = 1,
+        .end_byte = 8,
+    });
+    try std.testing.expectEqual(Point{ .row = 2, .column = 5 }, r.start_point);
+    try std.testing.expectEqual(Point{ .row = 3, .column = 1 }, r.end_point);
+    try std.testing.expectEqual(11, r.start_byte);
+    try std.testing.expectEqual(18, r.end_byte);
+
+    // a grandchild on row 0 of its parent keeps the parent's column
+    const same_row = offset.compose(.{ .row = 0, .column = 3 }, 3);
+    try std.testing.expectEqual(Offset{ .row = 2, .column = 7, .byte = 13 }, same_row);
+    try std.testing.expectEqual(Point{ .row = 2, .column = 8 }, same_row.apply_point(.{ .row = 0, .column = 1 }));
+
+    const next_row = offset.compose(.{ .row = 1, .column = 2 }, 9);
+    try std.testing.expectEqual(Offset{ .row = 3, .column = 2, .byte = 19 }, next_row);
+    try std.testing.expectEqual(Point{ .row = 3, .column = 3 }, next_row.apply_point(.{ .row = 0, .column = 1 }));
+    try std.testing.expectEqual(Point{ .row = 4, .column = 1 }, next_row.apply_point(.{ .row = 1, .column = 1 }));
+}
+
+test "nested rust macros are highlighted at each depth up to the limit" {
+    if (!build_options.use_tree_sitter) return error.SkipZigTest;
+    const io = std.testing.io;
+    const gpa = std.testing.allocator;
+    const query_cache = try QueryCache.create(io, gpa, .{});
+    defer query_cache.deinit();
+    const syn = try create_file_type_static(gpa, "rust", query_cache);
+    defer syn.destroy();
+    try syn.refresh_full(
+        \\fn f() {
+        \\    a!(
+        \\        b![c!(
+        \\            d!(e!(1))
+        \\        )]
+        \\    );
+        \\}
+        \\
+    );
+
+    // the literal is in the token tree of all five macros
+    const start: Point = .{ .row = 3, .column = 18 };
+    const end: Point = .{ .row = 3, .column = 19 };
+    const cases = [_]struct { limit: u8, depths: u64 }{
+        .{ .limit = 0, .depths = 0b1 },
+        .{ .limit = 1, .depths = 0b11 },
+        .{ .limit = 3, .depths = 0b1111 },
+        .{ .limit = 5, .depths = 0b111111 },
+        .{ .limit = 255, .depths = 0b111111 },
+        .{ .limit = 2, .depths = 0b111 },
+    };
+    for (cases) |case| {
+        const captures = try test_render(gpa, syn, case.limit);
+        defer free_test_captures(gpa, captures);
+        errdefer std.debug.print("limit {d}\n", .{case.limit});
+        try std.testing.expectEqual(case.depths, test_capture_depths(captures, "constant.builtin", start, end));
+    }
+}
+
+test "injected highlights see their own text" {
+    if (!build_options.use_tree_sitter) return error.SkipZigTest;
+    const io = std.testing.io;
+    const gpa = std.testing.allocator;
+    const query_cache = try QueryCache.create(io, gpa, .{});
+    defer query_cache.deinit();
+    const syn = try create_file_type_static(gpa, "markdown", query_cache);
+    defer syn.destroy();
+    try syn.refresh_full(
+        \\```zig
+        \\const std = @import("std");
+        \\```
+        \\
+    );
+
+    // `@import` is captured only through an #any-of? predicate on its text
+    const captures = try test_render(gpa, syn, 1);
+    defer free_test_captures(gpa, captures);
+    try std.testing.expectEqual(0b10, test_capture_depths(captures, "keyword.import", .{ .row = 1, .column = 12 }, .{ .row = 1, .column = 19 }));
+}
+
+test "markdown nested in markdown stops at the limit" {
+    if (!build_options.use_tree_sitter) return error.SkipZigTest;
+    const io = std.testing.io;
+    const gpa = std.testing.allocator;
+    const query_cache = try QueryCache.create(io, gpa, .{});
+    defer query_cache.deinit();
+    const syn = try create_file_type_static(gpa, "markdown", query_cache);
+    defer syn.destroy();
+    try syn.refresh_full(
+        \\~~~~markdown
+        \\~~~markdown
+        \\```zig
+        \\const std = @import("std");
+        \\```
+        \\~~~
+        \\~~~~
+        \\
+    );
+
+    const start: Point = .{ .row = 3, .column = 12 };
+    const end: Point = .{ .row = 3, .column = 19 };
+    {
+        const captures = try test_render(gpa, syn, 3);
+        defer free_test_captures(gpa, captures);
+        try std.testing.expectEqual(0b1000, test_capture_depths(captures, "keyword.import", start, end));
+    }
+    {
+        const captures = try test_render(gpa, syn, 2);
+        defer free_test_captures(gpa, captures);
+        try std.testing.expectEqual(0, test_capture_depths(captures, "keyword.import", start, end));
+        try std.testing.expectEqual(2, max_test_depth(captures));
     }
 }
 
