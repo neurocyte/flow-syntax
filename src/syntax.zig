@@ -33,10 +33,15 @@ injection_list: std.ArrayList(Injection) = .empty,
 edited_ranges: std.ArrayList(ByteRange) = .empty,
 injections_state: enum { current, stale, pending } = .current,
 content: ?[]u8 = null,
+included_ranges: []Range = &.{},
 
 const ByteRange = struct {
     start: u32,
     end: u32,
+
+    fn touches(self: ByteRange, start: u32, end: u32) bool {
+        return start <= self.end and end >= self.start;
+    }
 
     /// half-open, like the query cursor byte range
     fn overlaps(self: ByteRange, start: u32, end: u32) bool {
@@ -51,10 +56,12 @@ pub const Injection = struct {
     end_row: u32,
     start_byte: u32,
     end_byte: u32,
+    included: []Range = &.{},
     syntax: ?*Self = null,
 
     fn deinit(self: *Injection, allocator: std.mem.Allocator) void {
         if (self.syntax) |syn| syn.destroy();
+        allocator.free(self.included);
         allocator.free(self.lang_name);
     }
 };
@@ -98,6 +105,7 @@ pub fn destroy(self: *Self) void {
     self.injection_list.deinit(self.allocator);
     self.edited_ranges.deinit(self.allocator);
     if (self.content) |c| self.allocator.free(c);
+    self.allocator.free(self.included_ranges);
     if (self.tree) |tree| tree.destroy();
     self.query_cache.release(self.query, .highlights);
     self.query_cache.release(self.errors_query, .errors);
@@ -141,20 +149,30 @@ pub fn edit(self: *Self, ed: Edit) void {
 }
 
 fn edit_injections(self: *Self, ed: Edit) void {
+    var edited: ByteRange = .{ .start = ed.start_byte, .end = ed.new_end_byte };
     var index: usize = 0;
     while (index < self.injection_list.items.len) {
         const inj = &self.injection_list.items[index];
         if (inj.end_byte < ed.start_byte) {
             index += 1;
         } else if (inj.start_byte > ed.old_end_byte) {
-            if (inj.start_point.row == ed.old_end_point.row)
-                inj.start_point.column = inj.start_point.column - ed.old_end_point.column + ed.new_end_point.column;
-            inj.start_point.row = inj.start_point.row - ed.old_end_point.row + ed.new_end_point.row;
+            inj.start_point = shift_point(inj.start_point, ed);
             inj.end_row = inj.end_row - ed.old_end_point.row + ed.new_end_point.row;
             inj.start_byte = inj.start_byte - ed.old_end_byte + ed.new_end_byte;
             inj.end_byte = inj.end_byte - ed.old_end_byte + ed.new_end_byte;
+            for (inj.included) |*r| {
+                r.start_point = shift_point(r.start_point, ed);
+                r.end_point = shift_point(r.end_point, ed);
+                r.start_byte = r.start_byte - ed.old_end_byte + ed.new_end_byte;
+                r.end_byte = r.end_byte - ed.old_end_byte + ed.new_end_byte;
+            }
             index += 1;
         } else {
+            if (inj.included.len > 0) {
+                edited.start = @min(edited.start, inj.start_byte);
+                if (inj.end_byte > ed.old_end_byte)
+                    edited.end = @max(edited.end, inj.end_byte - ed.old_end_byte + ed.new_end_byte);
+            }
             inj.deinit(self.allocator);
             _ = self.injection_list.orderedRemove(index);
         }
@@ -169,8 +187,18 @@ fn edit_injections(self: *Self, ed: Edit) void {
             range.end = @max(range.end, ed.old_end_byte) - ed.old_end_byte + ed.new_end_byte;
         }
     }
-    self.edited_ranges.append(self.allocator, .{ .start = ed.start_byte, .end = ed.new_end_byte }) catch {
+    self.edited_ranges.append(self.allocator, edited) catch {
         self.injections_state = .stale;
+    };
+}
+
+fn shift_point(p: Point, ed: Edit) Point {
+    return .{
+        .row = p.row - ed.old_end_point.row + ed.new_end_point.row,
+        .column = if (p.row == ed.old_end_point.row)
+            p.column - ed.old_end_point.column + ed.new_end_point.column
+        else
+            p.column,
     };
 }
 
@@ -250,14 +278,24 @@ fn update_injections(self: *Self, old_tree: ?*treez.Tree, content: []const u8) !
     for (changed) |range| self.edited_ranges.appendAssumeCapacity(.{ .start = range.start_byte, .end = range.end_byte });
 
     for (self.edited_ranges.items) |range_| {
-        const range = whole_lines(content, range_);
-        var index: usize = 0;
-        while (index < self.injection_list.items.len) {
-            const inj = &self.injection_list.items[index];
-            if (range.overlaps(inj.start_byte, inj.end_byte)) {
+        var range = whole_lines(content, range_);
+        var grown = true;
+        while (grown) {
+            grown = false;
+            var index: usize = 0;
+            while (index < self.injection_list.items.len) {
+                const inj = &self.injection_list.items[index];
+                if (inj.included.len > 0 and range.touches(inj.start_byte, inj.end_byte)) {
+                    range.start = @min(range.start, inj.start_byte);
+                    range.end = @max(range.end, inj.end_byte);
+                    grown = true;
+                } else if (!range.overlaps(inj.start_byte, inj.end_byte)) {
+                    index += 1;
+                    continue;
+                }
                 inj.deinit(self.allocator);
                 _ = self.injection_list.orderedRemove(index);
-            } else index += 1;
+            }
         }
         try self.add_injections(content, range);
     }
@@ -294,6 +332,19 @@ fn add_injections(self: *Self, content: []const u8, range: ?ByteRange) !void {
     if (build_options.use_tree_sitter) if (range) |range_| cursor.setByteRange(range_.start, range_.end);
     cursor.execute(injections_query, tree.getRootNode());
 
+    const Found = struct {
+        pattern_index: u16,
+        combined: bool,
+        lang_name: []const u8,
+        file_type: FileType,
+        ranges: std.ArrayList(Range) = .empty,
+    };
+    var found: std.ArrayList(Found) = .empty;
+    defer {
+        for (found.items) |*f| f.ranges.deinit(self.allocator);
+        found.deinit(self.allocator);
+    }
+
     while (cursor.nextMatch()) |match| {
         var lang_range: ?Range = null;
         var content_range: ?Range = null;
@@ -320,30 +371,90 @@ fn add_injections(self: *Self, content: []const u8, range: ?ByteRange) !void {
             FileType.get_by_name_static(normalize_lang_name(lang_name)) orelse
             continue;
 
-        const start_byte = crange.start_byte;
-        const end_byte = crange.end_byte;
-        if (start_byte >= end_byte or end_byte > content.len) continue;
+        if (crange.start_byte >= crange.end_byte or crange.end_byte > content.len) continue;
+
+        const combined = has_static_injection_flag(injections_query, match.pattern_index, "injection.combined");
+        const group: *Found = blk: {
+            if (combined) if (last_found(found.items, match.pattern_index)) |prev| {
+                const prev_end = prev.ranges.getLast();
+                if (std.mem.eql(u8, prev.lang_name, lang_name) and
+                    prev_end.end_byte <= crange.start_byte and
+                    crange.start_point.row <= last_content_row(prev_end) + 1)
+                    break :blk prev;
+            };
+            try found.append(self.allocator, .{
+                .pattern_index = match.pattern_index,
+                .combined = combined,
+                .lang_name = lang_name,
+                .file_type = file_type,
+            });
+            break :blk &found.items[found.items.len - 1];
+        };
+        try self.append_included(&group.ranges, crange);
+    }
+
+    for (found.items) |*f| {
+        if (f.ranges.items.len == 0) continue;
+        const first = f.ranges.items[0];
+        const last = f.ranges.getLast();
+        const start_byte = first.start_byte;
+        const end_byte = last.end_byte;
         if (range != null) {
             const known = for (self.injection_list.items, 0..) |*inj, index| {
                 if (inj.start_byte == start_byte and inj.end_byte == end_byte) break index;
             } else null;
             if (known) |index| {
-                if (std.mem.eql(u8, self.injection_list.items[index].lang_name, lang_name)) continue;
+                if (std.mem.eql(u8, self.injection_list.items[index].lang_name, f.lang_name)) continue;
                 self.injection_list.items[index].deinit(self.allocator);
                 _ = self.injection_list.orderedRemove(index);
             }
         }
 
-        const lang_name_owned = try self.allocator.dupe(u8, lang_name);
+        const lang_name_owned = try self.allocator.dupe(u8, f.lang_name);
         errdefer self.allocator.free(lang_name_owned);
+        const included: []Range = if (f.ranges.items.len > 1) try self.allocator.dupe(Range, f.ranges.items) else &.{};
+        errdefer self.allocator.free(included);
 
         try self.injection_list.append(self.allocator, .{
             .lang_name = lang_name_owned,
-            .file_type = file_type,
-            .start_point = crange.start_point,
-            .end_row = crange.end_point.row,
+            .file_type = f.file_type,
+            .start_point = first.start_point,
+            .end_row = last.end_point.row,
             .start_byte = start_byte,
             .end_byte = end_byte,
+            .included = included,
+        });
+    }
+}
+
+fn last_found(found: anytype, pattern_index: u16) ?*@typeInfo(@TypeOf(found)).pointer.child {
+    var i = found.len;
+    while (i > 0) {
+        i -= 1;
+        if (found[i].pattern_index == pattern_index) return if (found[i].combined) &found[i] else null;
+    }
+    return null;
+}
+
+/// The last row with content in a range. A range that ends with a line end
+/// ends on column 0 of the next row.
+fn last_content_row(r: Range) u32 {
+    return if (r.end_point.column == 0 and r.end_point.row > r.start_point.row) r.end_point.row - 1 else r.end_point.row;
+}
+
+/// Append the parts of `node_range` that this syntax parses
+fn append_included(self: *const Self, ranges: *std.ArrayList(Range), node_range: Range) !void {
+    if (self.included_ranges.len == 0) return ranges.append(self.allocator, node_range);
+    for (self.included_ranges) |inc| {
+        if (inc.end_byte <= node_range.start_byte) continue;
+        if (inc.start_byte >= node_range.end_byte) break;
+        const start = if (inc.start_byte > node_range.start_byte) inc else node_range;
+        const end = if (inc.end_byte < node_range.end_byte) inc else node_range;
+        try ranges.append(self.allocator, .{
+            .start_point = start.start_point,
+            .end_point = end.end_point,
+            .start_byte = start.start_byte,
+            .end_byte = end.end_byte,
         });
     }
 }
@@ -408,6 +519,26 @@ fn get_static_injection_language(query: *const Query, pattern_idx: u16) ?[]const
         }
     }
     return null;
+}
+
+/// Check for a static `#set! <flag>` predicate on the given pattern index
+fn has_static_injection_flag(query: *const Query, pattern_idx: u16, flag: []const u8) bool {
+    const steps = query.getPredicatesForPattern(pattern_idx);
+    var i: usize = 0;
+    while (i < steps.len) {
+        var j = i;
+        while (j < steps.len and steps[j].type != .done) j += 1;
+        const group = steps[i..j];
+        i = j + 1;
+
+        if (group.len == 2 and
+            group[0].type == .string and
+            group[1].type == .string and
+            std.mem.eql(u8, query.getStringValueForId(group[0].value_id), "set!") and
+            std.mem.eql(u8, query.getStringValueForId(group[1].value_id), flag))
+            return true;
+    }
+    return false;
 }
 
 pub fn write_pattern_predicates_cbor(
@@ -786,11 +917,23 @@ fn injection_syntax(self: *Self, inj: *Injection) !*Self {
     const child_content = content[inj.start_byte..inj.end_byte];
     const child = try Self.create(inj.file_type, self.allocator, self.query_cache);
     errdefer child.destroy();
+    if (inj.included.len > 0) {
+        child.included_ranges = try self.allocator.alloc(Range, inj.included.len);
+        const origin: Offset = .{ .row = inj.start_point.row, .column = inj.start_point.column, .byte = inj.start_byte };
+        for (child.included_ranges, inj.included) |*local, r| local.* = origin.unapply(r);
+        try set_included_ranges(child.parser, child.included_ranges);
+    }
     child.tree = try child.parser.parseString(null, child_content);
     child.content = try self.allocator.dupe(u8, child_content);
     child.injections_state = .pending;
     inj.syntax = child;
     return child;
+}
+
+fn set_included_ranges(parser: *Parser, ranges: []const Range) !void {
+    if (!build_options.use_tree_sitter) return;
+    if (!Parser.externs.ts_parser_set_included_ranges(parser, ranges.ptr, @intCast(ranges.len)))
+        return error.InvalidIncludedRanges;
 }
 
 /// The document position of a child syntax's origin
@@ -812,6 +955,22 @@ const Offset = struct {
             .end_point = self.apply_point(r.end_point),
             .start_byte = r.start_byte + self.byte,
             .end_byte = r.end_byte + self.byte,
+        };
+    }
+
+    fn unapply_point(self: Offset, p: Point) Point {
+        return .{
+            .row = p.row - self.row,
+            .column = p.column - if (p.row == self.row) self.column else 0,
+        };
+    }
+
+    fn unapply(self: Offset, r: Range) Range {
+        return .{
+            .start_point = self.unapply_point(r.start_point),
+            .end_point = self.unapply_point(r.end_point),
+            .start_byte = r.start_byte - self.byte,
+            .end_byte = r.end_byte - self.byte,
         };
     }
 
@@ -931,7 +1090,7 @@ test "get_pattern_priority reads #set! priority from the yaml query" {
     try std.testing.expect(seen_99);
 }
 
-const TestInjection = struct { start_byte: u32, end_byte: u32, start_point: Point, end_row: u32, lang: []const u8 };
+const TestInjection = struct { start_byte: u32, end_byte: u32, start_point: Point, end_row: u32, lang: []const u8, included: []const Range };
 
 fn test_injections(allocator: std.mem.Allocator, syn: *const Self) ![]TestInjection {
     const list = try allocator.alloc(TestInjection, syn.injection_list.items.len);
@@ -941,6 +1100,7 @@ fn test_injections(allocator: std.mem.Allocator, syn: *const Self) ![]TestInject
         .start_point = inj.start_point,
         .end_row = inj.end_row,
         .lang = inj.lang_name,
+        .included = inj.included,
     };
     std.mem.sort(TestInjection, list, {}, struct {
         fn less(_: void, a: TestInjection, b: TestInjection) bool {
@@ -956,24 +1116,67 @@ fn test_point(text: []const u8, offset: usize) Point {
     return .{ .row = @intCast(row), .column = @intCast(offset - line_begin) };
 }
 
-test "injections after incremental parses equal the injections of a full parse" {
-    if (!build_options.use_tree_sitter) return error.SkipZigTest;
+fn test_trees_equal(a: *const treez.Tree, b: *const treez.Tree) bool {
+    const sa = a.getRootNode().asSExpressionString();
+    defer Node.freeSExpressionString(sa);
+    const sb = b.getRootNode().asSExpressionString();
+    defer Node.freeSExpressionString(sb);
+    return std.mem.eql(u8, sa, sb);
+}
+
+/// Swaps the injections query of a syntax for one made from `source`
+const TestInjectionsQuery = struct {
+    syn: *Self,
+    original: ?*Query,
+
+    fn init(syn: *Self, source: []const u8) !TestInjectionsQuery {
+        var error_offset: u32 = 0;
+        const query = try Query.create(syn.lang, source, &error_offset);
+        const original = syn.injections;
+        syn.injections = query;
+        return .{ .syn = syn, .original = original };
+    }
+
+    fn deinit(self: TestInjectionsQuery) void {
+        self.syn.injections.?.destroy();
+        self.syn.injections = self.original;
+    }
+};
+
+const test_rust_doc_injections =
+    \\((line_comment (doc_comment) @injection.content)
+    \\  (#set! injection.language "markdown")
+    \\  (#set! injection.combined))
+;
+
+fn test_incremental_injections(
+    lang: []const u8,
+    injections_source: ?[]const u8,
+    initial_text: []const u8,
+    pieces: []const []const u8,
+    expected_depth: u32,
+) !void {
     const io = std.testing.io;
     const gpa = std.testing.allocator;
-    const file_type = FileType.get_by_name_static("markdown") orelse return error.SkipZigTest;
     const query_cache = try QueryCache.create(io, gpa, .{});
     defer query_cache.deinit();
-    const incremental = try create(file_type, gpa, query_cache);
+    const incremental = try create_file_type_static(gpa, lang, query_cache);
     defer incremental.destroy();
+    const incremental_query = if (injections_source) |src| try TestInjectionsQuery.init(incremental, src) else null;
+    defer if (incremental_query) |q| q.deinit();
 
     var text: std.ArrayList(u8) = .empty;
     defer text.deinit(gpa);
-    for (0..12) |i| try text.print(gpa, "# Title {d}\n\nSome *text* with `code` and <b>html</b> here.\n\n```zig\nconst a{d} = {d};\n```\n\n```json\n{{\"k\": {d}}}\n```\n\n", .{ i, i, i, i });
+    try text.appendSlice(gpa, initial_text);
     try text.append(gpa, 0);
     try incremental.refresh_full(text.items[0 .. text.items.len - 1]);
     try std.testing.expect(incremental.injection_list.items.len > 12);
+    {
+        const captures = try test_render(gpa, incremental, 3);
+        defer free_test_captures(gpa, captures);
+        try std.testing.expectEqual(expected_depth, max_test_depth(captures));
+    }
 
-    const pieces = [_][]const u8{ "x", "\n", "```", "```zig\n", "zig", "json", " ", "\n\n", "`", "# ", "*", "const b = 1;\n", "<b>", "</b>" };
     var prng: std.Random.DefaultPrng = .init(0x5eed);
     const random = prng.random();
     for (0..400) |round| {
@@ -1000,9 +1203,17 @@ test "injections after incremental parses equal the injections of a full parse" 
         const content = text.items[0 .. text.items.len - 1 :0];
         try incremental.refresh_from_string(content);
 
-        const full = try create(file_type, gpa, query_cache);
+        const full = try create_file_type_static(gpa, lang, query_cache);
         defer full.destroy();
+        const full_query = if (injections_source) |src| try TestInjectionsQuery.init(full, src) else null;
+        defer if (full_query) |q| q.deinit();
         try full.refresh_full(content);
+        if (!test_trees_equal(full.tree.?, incremental.tree.?)) {
+            // error recovery can build another tree incrementally; query the same tree
+            full.tree.?.destroy();
+            full.tree = try incremental.tree.?.dupe();
+            try full.refresh_injections(content);
+        }
         const expected = try test_injections(gpa, full);
         defer gpa.free(expected);
         const actual = try test_injections(gpa, incremental);
@@ -1016,14 +1227,87 @@ test "injections after incremental parses equal the injections of a full parse" 
             try std.testing.expectEqual(e.start_point.column, a.start_point.column);
             try std.testing.expectEqual(e.end_row, a.end_row);
             try std.testing.expectEqualStrings(e.lang, a.lang);
+            try std.testing.expectEqualSlices(Range, e.included, a.included);
         }
 
         const expected_captures = try test_render(gpa, full, 3);
         defer free_test_captures(gpa, expected_captures);
         const actual_captures = try test_render(gpa, incremental, 3);
         defer free_test_captures(gpa, actual_captures);
-        try std.testing.expect(max_test_depth(expected_captures) == 2);
         try expect_equal_test_captures(expected_captures, actual_captures);
+    }
+}
+
+test "injections after incremental parses equal the injections of a full parse" {
+    if (!build_options.use_tree_sitter) return error.SkipZigTest;
+    var text: std.ArrayList(u8) = .empty;
+    defer text.deinit(std.testing.allocator);
+    for (0..12) |i| try text.print(std.testing.allocator, "# Title {d}\n\nSome *text* with `code` and <b>html</b> here.\n\n```zig\nconst a{d} = {d};\n```\n\n```json\n{{\"k\": {d}}}\n```\n\n", .{ i, i, i, i });
+    try test_incremental_injections("markdown", null, text.items, &.{ "x", "\n", "```", "```zig\n", "zig", "json", " ", "\n\n", "`", "# ", "*", "const b = 1;\n", "<b>", "</b>" }, 2);
+}
+
+test "combined injections after incremental parses equal the injections of a full parse" {
+    if (!build_options.use_tree_sitter) return error.SkipZigTest;
+    var text: std.ArrayList(u8) = .empty;
+    defer text.deinit(std.testing.allocator);
+    for (0..16) |i| try text.print(std.testing.allocator, "/// Adds {d}.\n///\n/// ```rust\n/// let x = add(1);\n/// assert_eq!(x, {d});\n/// ```\npub fn add{d}(x: i32) -> i32 {{ x + {d} }}\n\n", .{ i, i + 1, i, i });
+    try test_incremental_injections("rust", test_rust_doc_injections, text.items, &.{ "x", "\n", "/// ", "///", "```", "```rust\n", " ", "\n\n", "1", "fn", "(", ")", "//", "`" }, 3);
+}
+
+test "combined doc comments are one markdown injection" {
+    if (!build_options.use_tree_sitter) return error.SkipZigTest;
+    const io = std.testing.io;
+    const gpa = std.testing.allocator;
+    const query_cache = try QueryCache.create(io, gpa, .{});
+    defer query_cache.deinit();
+    const syn = try create_file_type_static(gpa, "rust", query_cache);
+    defer syn.destroy();
+    const query = try TestInjectionsQuery.init(syn, test_rust_doc_injections);
+    defer query.deinit();
+    try syn.refresh_full(
+        \\/// Adds one.
+        \\///
+        \\/// ```rust
+        \\/// let x = add_one(1);
+        \\/// assert_eq!(x, 2);
+        \\/// ```
+        \\pub fn add_one(x: i32) -> i32 { x + 1 }
+        \\
+        \\/// Second.
+        \\/// More.
+        \\fn g() {}
+        \\
+        \\/// Third.
+        \\fn h() {}
+        \\
+    );
+
+    // one injection per doc block; a single line has no included ranges
+    const injections = try test_injections(gpa, syn);
+    defer gpa.free(injections);
+    try std.testing.expectEqual(3, injections.len);
+    try std.testing.expectEqual(Point{ .row = 0, .column = 3 }, injections[0].start_point);
+    try std.testing.expectEqual(6, injections[0].included.len);
+    try std.testing.expectEqual(Point{ .row = 8, .column = 3 }, injections[1].start_point);
+    try std.testing.expectEqual(2, injections[1].included.len);
+    try std.testing.expectEqual(Point{ .row = 12, .column = 3 }, injections[2].start_point);
+    try std.testing.expectEqual(0, injections[2].included.len);
+
+    const cases = [_]struct { limit: u8, one: u64, two: u64 }{
+        .{ .limit = 1, .one = 0, .two = 0 },
+        .{ .limit = 2, .one = 0b100, .two = 0b100 },
+        .{ .limit = 3, .one = 0b100, .two = 0b1100 },
+    };
+    for (cases) |case| {
+        const captures = try test_render(gpa, syn, case.limit);
+        defer free_test_captures(gpa, captures);
+        errdefer std.debug.print("limit {d}\n", .{case.limit});
+        // `1` is in the fenced code, `2` is also in the `assert_eq!` token tree
+        try std.testing.expectEqual(case.one, test_capture_depths(captures, "constant.builtin", .{ .row = 3, .column = 20 }, .{ .row = 3, .column = 21 }));
+        try std.testing.expectEqual(case.two, test_capture_depths(captures, "constant.builtin", .{ .row = 4, .column = 18 }, .{ .row = 4, .column = 19 }));
+        // the fenced code is parsed without the `///` markers of its host
+        for (captures) |c| if (c.depth >= 2 and c.start.row >= 3 and c.start.row <= 4)
+            try std.testing.expect(c.start.column >= 3);
     }
 }
 
