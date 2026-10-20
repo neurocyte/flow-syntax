@@ -53,7 +53,7 @@ pub fn build(b: *std.Build) void {
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-cpp/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-css/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "queries/d/highlights.scm");
-    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-diff/queries/highlights.scm");
+    ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "queries/diff/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "tree-sitter-dockerfile/queries/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/elixir/highlights.scm");
     ts_queryfile(b, tree_sitter_dep, ts_bin_query_gen, "nvim-treesitter/runtime/queries/heex/highlights.scm");

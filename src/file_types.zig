@@ -176,6 +176,7 @@ pub const diff = .{
     .description = "Diff",
     .extensions = .{ "diff", "patch", "rej" },
     .comment = "#",
+    .highlights = "queries/diff/highlights.scm",
 };
 
 pub const dockerfile = .{
