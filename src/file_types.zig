@@ -800,7 +800,8 @@ pub const rust = .{
     .icon = "󱘗",
     .extensions = .{"rs"},
     .comment = "//",
-    .injections = "tree-sitter-rust/queries/injections.scm",
+    .highlights = "queries/rust/highlights.scm",
+    .injections = "queries/rust/injections.scm",
 };
 
 pub const query = .{

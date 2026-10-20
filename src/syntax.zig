@@ -486,6 +486,15 @@ fn normalize_lang_name(name: []const u8) []const u8 {
         .{ "md", "markdown" },
         .{ "markdown_inline", "markdown-inline" },
         .{ "rs", "rust" },
+        // rustdoc code block attributes
+        .{ "ignore", "rust" },
+        .{ "no_run", "rust" },
+        .{ "should_panic", "rust" },
+        .{ "compile_fail", "rust" },
+        .{ "edition2015", "rust" },
+        .{ "edition2018", "rust" },
+        .{ "edition2021", "rust" },
+        .{ "edition2024", "rust" },
     };
     inline for (aliases) |alias| {
         if (std.ascii.eqlIgnoreCase(name, alias[0])) return alias[1];
@@ -1254,6 +1263,52 @@ test "combined injections after incremental parses equal the injections of a ful
     try test_incremental_injections("rust", test_rust_doc_injections, text.items, &.{ "x", "\n", "/// ", "///", "```", "```rust\n", " ", "\n\n", "1", "fn", "(", ")", "//", "`" }, 3);
 }
 
+test "rust doc comments are markdown with rust code blocks" {
+    if (!build_options.use_tree_sitter) return error.SkipZigTest;
+    const io = std.testing.io;
+    const gpa = std.testing.allocator;
+    const query_cache = try QueryCache.create(io, gpa, .{});
+    defer query_cache.deinit();
+    const syn = try create_file_type_static(gpa, "rust", query_cache);
+    defer syn.destroy();
+    try syn.refresh_full(
+        \\/// Adds one to `x`.
+        \\///
+        \\/// ```rust
+        \\/// assert_eq!(add_one(1), 2)
+        \\/// ```
+        \\///
+        \\/// ```ignore
+        \\/// let y = 3;
+        \\/// ```
+        \\pub fn add_one(x: i32) -> i32 { x + 1 }
+        \\
+    );
+
+    const Case = struct { scope: []const u8, start: Point, end: Point, depths: u64 };
+    const cases = [_]Case{
+        // the host keeps the doc comment scope under the injected highlights
+        .{ .scope = "comment.documentation", .start = .{ .row = 0, .column = 0 }, .end = .{ .row = 1, .column = 0 }, .depths = 0b1 },
+        // markdown-inline in markdown
+        .{ .scope = "text.literal", .start = .{ .row = 0, .column = 16 }, .end = .{ .row = 0, .column = 19 }, .depths = 0b100 },
+        // rust in markdown
+        .{ .scope = "function.macro", .start = .{ .row = 3, .column = 4 }, .end = .{ .row = 3, .column = 13 }, .depths = 0b100 },
+        // rust in the assert_eq! token tree of the rust in markdown
+        .{ .scope = "number", .start = .{ .row = 3, .column = 23 }, .end = .{ .row = 3, .column = 24 }, .depths = 0b1100 },
+        // a rustdoc attribute as the fence language
+        .{ .scope = "number", .start = .{ .row = 7, .column = 12 }, .end = .{ .row = 7, .column = 13 }, .depths = 0b100 },
+    };
+    const captures = try test_render(gpa, syn, 3);
+    defer free_test_captures(gpa, captures);
+    for (cases) |case| {
+        errdefer std.debug.print("{s} at {d},{d}\n", .{ case.scope, case.start.row, case.start.column });
+        try std.testing.expectEqual(case.depths, test_capture_depths(captures, case.scope, case.start, case.end));
+    }
+    // no injected capture covers a `///` marker; zero width captures cover nothing
+    for (captures) |c| if (c.depth >= 1 and c.start.row <= 8 and !std.meta.eql(c.start, c.end))
+        try std.testing.expect(c.start.column >= 3);
+}
+
 test "combined doc comments are one markdown injection" {
     if (!build_options.use_tree_sitter) return error.SkipZigTest;
     const io = std.testing.io;
@@ -1303,8 +1358,8 @@ test "combined doc comments are one markdown injection" {
         defer free_test_captures(gpa, captures);
         errdefer std.debug.print("limit {d}\n", .{case.limit});
         // `1` is in the fenced code, `2` is also in the `assert_eq!` token tree
-        try std.testing.expectEqual(case.one, test_capture_depths(captures, "constant.builtin", .{ .row = 3, .column = 20 }, .{ .row = 3, .column = 21 }));
-        try std.testing.expectEqual(case.two, test_capture_depths(captures, "constant.builtin", .{ .row = 4, .column = 18 }, .{ .row = 4, .column = 19 }));
+        try std.testing.expectEqual(case.one, test_capture_depths(captures, "number", .{ .row = 3, .column = 20 }, .{ .row = 3, .column = 21 }));
+        try std.testing.expectEqual(case.two, test_capture_depths(captures, "number", .{ .row = 4, .column = 18 }, .{ .row = 4, .column = 19 }));
         // the fenced code is parsed without the `///` markers of its host
         for (captures) |c| if (c.depth >= 2 and c.start.row >= 3 and c.start.row <= 4)
             try std.testing.expect(c.start.column >= 3);
@@ -1435,7 +1490,7 @@ test "nested rust macros are highlighted at each depth up to the limit" {
         const captures = try test_render(gpa, syn, case.limit);
         defer free_test_captures(gpa, captures);
         errdefer std.debug.print("limit {d}\n", .{case.limit});
-        try std.testing.expectEqual(case.depths, test_capture_depths(captures, "constant.builtin", start, end));
+        try std.testing.expectEqual(case.depths, test_capture_depths(captures, "number", start, end));
     }
 }
 
